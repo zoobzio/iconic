@@ -1,0 +1,13 @@
+# Packages
+
+| Package                      | Directory         | Description                                                         |
+| ---------------------------- | ----------------- | ------------------------------------------------------------------- |
+| [`iconic`](./iconic)         | `packages/iconic` | Umbrella package — core API at the root, `svg` and `kit` subpaths   |
+| [`@iconic/common`](./common) | `packages/common` | Dependency-free type guards and typed object helpers                |
+| [`@iconic/core`](./core)     | `packages/core`   | The icon engine (`defineIconic`) — load, resolve, subset            |
+| [`@iconic/svg`](./svg)       | `packages/svg`    | SVG sprite-sheet renderer (`defineSprite`)                          |
+| [`@iconic/kit`](./kit)       | `packages/kit`    | Collection-authoring toolkit (`defineIconicPreset`)                 |
+| [`@iconic/schema`](./schema) | `packages/schema` | Iconify JSON contract types and runtime validation (`defineSchema`) |
+| [`@iconic/utils`](./utils)   | `packages/utils`  | Structural icon-set operations (`merge`/`subset`/`prune`/`diff`)    |
+
+Framework integrations (e.g. the Nuxt module) live in [`../integrations`](../integrations).

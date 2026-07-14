@@ -1,0 +1,26 @@
+{
+  "name": "@iconic/schema",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./.dist/index.mjs",
+  "types": "./.dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./.dist/index.d.ts",
+      "import": "./.dist/index.mjs"
+    }
+  },
+  "files": [
+    ".dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "stub": "unbuild --stub",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@iconic/common": "workspace:*"
+  }
+}

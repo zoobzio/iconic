@@ -1,0 +1,56 @@
+name: Release
+
+# Trunk-based, no schedule: work merges to main continuously, and changesets
+# keeps an open "Release" PR that accumulates the pending version bump. Merging
+# that PR publishes. workflow_dispatch is the ad-hoc "Run workflow" button.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never cancel a release mid-publish; queue instead.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write # push the release branch, tag, create GitHub releases
+  pull-requests: write # open/update the Release PR
+  id-token: write # OIDC trusted publishing + provenance attestation
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      # registry-url wires npm at the registry so the OIDC token exchange has a
+      # target. Node from .nvmrc clears the >=22.14 floor OIDC requires.
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # Two modes: pending changesets -> open/update the Release PR via
+      # ci:version; none pending (the PR just merged) -> ci:release builds and
+      # publishes. Auth is tokenless OIDC — no NPM_TOKEN. Provenance is emitted
+      # automatically under trusted publishing.
+      - name: Create Release PR or publish
+        uses: changesets/action@v1
+        with:
+          version: pnpm ci:version
+          publish: pnpm ci:release
+          commit: "chore: release"
+          title: "chore: release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"

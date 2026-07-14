@@ -1,0 +1,47 @@
+{
+  "name": "iconic",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./.dist/index.mjs",
+  "types": "./.dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./.dist/index.d.ts",
+      "import": "./.dist/index.mjs"
+    },
+    "./common": {
+      "types": "./.dist/common.d.ts",
+      "import": "./.dist/common.mjs"
+    },
+    "./config": {
+      "types": "./.dist/config.d.ts",
+      "import": "./.dist/config.mjs"
+    },
+    "./svg": {
+      "types": "./.dist/svg.d.ts",
+      "import": "./.dist/svg.mjs"
+    },
+    "./kit": {
+      "types": "./.dist/kit.d.ts",
+      "import": "./.dist/kit.mjs"
+    }
+  },
+  "files": [
+    ".dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "stub": "unbuild --stub",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@iconic/common": "workspace:*",
+    "@iconic/core": "workspace:*",
+    "@iconic/kit": "workspace:*",
+    "@iconic/schema": "workspace:*",
+    "@iconic/svg": "workspace:*",
+    "@iconic/utils": "workspace:*"
+  }
+}
