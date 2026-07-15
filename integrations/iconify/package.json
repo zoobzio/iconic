@@ -1,5 +1,5 @@
 {
-  "name": "@iconic/svg",
+  "name": "@iconic/iconify",
   "version": "0.1.0",
   "type": "module",
   "main": "./.dist/index.mjs",
@@ -21,7 +21,13 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@iconic/common": "workspace:*",
     "@iconic/schema": "workspace:*",
+    "@iconify/types": "^2.0.0",
     "@iconify/utils": "^3.1.4"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "iconic": "workspace:*"
   }
 }

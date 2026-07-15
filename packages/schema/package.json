@@ -21,6 +21,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@iconic/common": "workspace:*"
+    "@iconic/common": "workspace:*",
+    "@iconify/types": "^2.0.0"
   }
 }

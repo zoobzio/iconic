@@ -1,2 +1,4 @@
-// @iconic/core — scaffold. The icon engine: load, resolve, subset.
-export {};
+export * from "./error";
+export * from "./factory";
+export * from "./service";
+export * from "./types";

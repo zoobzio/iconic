@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@iconic/common": "workspace:*",
-    "@iconic/schema": "workspace:*",
-    "@iconic/utils": "workspace:*"
+    "@iconic/schema": "workspace:*"
   }
 }

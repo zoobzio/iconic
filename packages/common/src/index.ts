@@ -1,2 +1,2 @@
-// @iconic/common — scaffold. Zero-dependency guards and object helpers.
-export {};
+export * from "./guard";
+export * from "./object";

@@ -1,2 +1,3 @@
-// @iconic/schema — scaffold. Iconify JSON contract types + runtime validation.
-export {};
+export * from "./error";
+export * from "./schema";
+export * from "./types";
