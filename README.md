@@ -1,72 +1,113 @@
 # iconic
 
 A type-safe icon system that resolves [Iconify](https://iconify.design) icons
-into a flat catalog of definition literals and renders them as optimized **SVG
-sprite sheets**, with framework integrations.
+into a flat contract of definition literals, switches between icon sets at
+runtime through a catalog, and renders them as optimized **SVG sprite sheets**,
+with framework integrations.
 
 iconic separates the **source** — the Iconify JSON collections icons are drawn
-from, with their aliases and inherited transforms — from the **catalog** the
+from, with their aliases and inherited transforms — from the **contract** the
 runtime carries. The build layer resolves each authored reference through the
 Iconify spec once, at build time, and emits a flat `alias → icon definition
-literal` map. The runtime never holds a collection and does no alias-tree
-resolution: it looks an alias up, returns the stored literal, and renders it.
-The catalog is carried in the types — icon names autocomplete and typos fail to
-compile — and re-proved at runtime by a schema over the Iconify icon shape.
+literal` map under an identity. The runtime never holds a collection and does no
+alias-tree resolution: it looks an alias up, returns the stored literal, and
+renders it. The contract is carried in the types — icon names autocomplete and
+typos fail to compile — and re-proved at runtime by a schema over the Iconify
+icon shape.
 
 ## Anatomy
 
-You author a **ref config** naming the icons an app uses by their Iconify
-reference:
+You author a **ref config** — an identity plus the icons an app uses, named by
+their Iconify reference:
 
 ```ts
 // icons authored as references (build-layer input)
 {
-  base: { home: "lucide:home", save: "lucide:content-save" },
-  sets: { solid: { home: "lucide-solid:home" } },
+  id: "app",
+  name: "App Icons",
+  icons: { home: "lucide:home", save: "lucide:content-save" },
 }
 ```
 
 The `@iconic/iconify` build layer resolves every reference against the Iconify
 collections — flattening alias chains, merging transforms, baking in
-collection-root defaults — and emits a **literal document**: a plain
-`iconic.config.ts` of resolved icon data, no collections retained.
+collection-root defaults — and emits a **contract**: a plain `iconic.config.ts`
+of resolved icon data, no collections retained.
 
 ```ts
 import { defineIconicConfig } from "iconic/config";
 
 export default defineIconicConfig({
-  base: { home: { body: "…", width: 24, height: 24 } },
-  sets: { solid: { home: { body: "…" } } },
+  contract: {
+    id: "app",
+    name: "App Icons",
+    icons: { home: { body: "…", width: 24, height: 24 } },
+  },
 });
 ```
 
-The runtime engine takes that literal document and resolves an alias to its
-stored icon by a plain lookup (the active set's override, else the base):
+The runtime engine seeds a fresh state container from that config and resolves
+an alias to its effective icon — the user override, else the active contract:
 
 ```ts
-import { defineIconic } from "iconic";
+import { makeIconic } from "iconic";
+import { useIconicConfig } from "iconic/config";
+import config from "./iconic.config";
 
-const icons = defineIconic({
-  base: { home: { body: "…", width: 24, height: 24 } },
-});
+const icons = makeIconic(useIconicConfig(config));
 
 icons.resolve("home"); // the stored { body, width, height } literal
 ```
 
-Rendering to a sprite keeps every icon addressable:
+## Switching sets
+
+Core holds one active contract and a construction-time baseline. A **set** is an
+identified layer that rebinds a subset of the aliases; `apply` becomes the set
+resolved against the baseline, and clears any user edits:
+
+```ts
+icons.apply(sharpSet); // becomes the "sharp" document; unbound aliases fall through
+icons.resolve("home"); // the sharp icon
+```
+
+Sets are discovered and retrieved through a **catalog** — a pure resolver with
+two duals over one wire protocol. `defineCatalog` serves sets from build-emitted
+JSON, a database, or any store; `defineClient` reaches a catalog hosted
+elsewhere. Both `list` (discovery, filtered/paged, tag-aware) and `get`
+(retrieval, proven against the contract) behave identically:
+
+```ts
+import { defineCatalog } from "iconic/catalog";
+
+const catalog = defineCatalog(icons.schema, provider);
+const set = await catalog.get("sharp");
+if (set) icons.apply(set);
+```
+
+## User overrides
+
+On top of the active contract sits a user override layer: `set` writes a single
+alias, `update` edits the active definition, `dirty` / `reset` / `delta` track
+and reconcile the edits, and `extract` snapshots the live result as a new
+contract.
+
+## Rendering
+
+A sprite gives one `<symbol id="{alias}">` per alias — no set namespacing, so a
+`<use href="#home">` never changes as the active set does; only the symbol body
+behind it does. `symbols(aliases)` renders the partial batch an integration
+patches into the DOM in place after an `apply`; `sheet()` renders the whole
+sprite for build-time or SSR.
 
 ```ts
 import { defineSprite } from "iconic/svg";
 
 const sprite = defineSprite(icons);
-
-sprite.symbol("home"); // '<symbol id="home" ...>…</symbol>'
-sprite.href("home"); // '#home' — for <use href="#home"/>
-sprite.sheet(); // the full <svg> sprite of every icon and set override
+sprite.href("home"); // "#home" — constant
+sprite.sheet(); // the full <svg> sprite
 ```
 
-Reusable icon packs — a curated base plus override sets — are authored with the
-kit (`iconic/kit`).
+Reusable icon packs are authored with the kit (`iconic/kit`).
 
 ## From Iconify JSON
 
@@ -84,6 +125,10 @@ fallback, and can also fetch a single icon from a URL.
 | [`integrations`](./integrations) | Build and framework bridges — the `@iconic/iconify` generator and the Nuxt module         |
 | `presets`                        | Reusable curated icon packs (none yet — the bucket is reserved)                            |
 | `examples`                       | Consuming apps demonstrating the pipeline (none yet — the bucket is reserved)              |
+
+The internal packages: `@iconic/schema` (validation), `@iconic/core` (runtime
+service), `@iconic/catalog` (set discovery/retrieval), `@iconic/svg` (sprite),
+`@iconic/kit` (authoring), `@iconic/utils` and `@iconic/common` (helpers).
 
 ## Development
 

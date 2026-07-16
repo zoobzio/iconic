@@ -1,14 +1,7 @@
 import { defineBuildConfig } from "unbuild";
 
 export default defineBuildConfig({
-  entries: [
-    "src/index",
-    "src/common",
-    "src/config",
-    "src/catalog",
-    "src/svg",
-    "src/kit",
-  ],
+  entries: ["src/index"],
   outDir: ".dist",
   declaration: true,
   rollup: {

@@ -12,8 +12,12 @@ const settings: IconifyIcon = { body: "<settings/>", width: 24 };
 
 describe("defineIconicPreset", () => {
   it("strings packs together into one service that knows every alias", () => {
-    const config = defineIconicPreset({ base: { us, gb } })
-      .configure({ base: { home, settings } })
+    const config = defineIconicPreset({
+      id: "flags",
+      name: "Flags",
+      icons: { us, gb },
+    })
+      .configure({ icons: { home, settings } })
       .use();
     const icons = makeIconic(config);
 
@@ -22,32 +26,41 @@ describe("defineIconicPreset", () => {
     expect(icons.resolve("home").body).toContain("home");
   });
 
-  it("chains two separately-defined presets by feeding one's catalog into configure", () => {
-    const flagPack = defineIconicPreset({ base: { us, gb } });
-    const uiPack = defineIconicPreset({ base: { home, settings } });
+  it("keeps the root preset's identity when configuring", () => {
+    const preset = defineIconicPreset({
+      id: "flags",
+      name: "Flags",
+      icons: { us },
+    }).configure({ icons: { home } });
+    expect(preset.contract.id).toBe("flags");
+    expect(preset.contract.name).toBe("Flags");
+  });
 
-    const icons = makeIconic(flagPack.configure(uiPack.catalog).use());
+  it("chains two separately-defined presets by feeding one's contract into configure", () => {
+    const flagPack = defineIconicPreset({
+      id: "flags",
+      name: "Flags",
+      icons: { us, gb },
+    });
+    const uiPack = defineIconicPreset({
+      id: "ui",
+      name: "UI",
+      icons: { home, settings },
+    });
+
+    const icons = makeIconic(flagPack.configure(uiPack.contract).use());
 
     expect(icons.aliases().sort()).toEqual(["gb", "home", "settings", "us"]);
     expect(icons.resolve("settings").body).toContain("settings");
   });
 
-  it("use() seeds the active set and a detached catalog", () => {
-    const config = defineIconicPreset({ base: { us } }).use();
-    expect(config.active).toBe("base");
-    expect(config.catalog.base.us).toBeDefined();
-  });
-
-  it("carries sets from a configured pack through to the service", () => {
-    const config = defineIconicPreset({ base: { home } })
-      .configure({
-        base: { settings },
-        sets: { alt: { home: settings } },
-      })
-      .use();
-    const icons = makeIconic(config);
-
-    expect(icons.sets()).toEqual(["alt"]);
-    expect(icons.resolve("home", "alt").body).toContain("settings");
+  it("use() seeds an empty override and a detached contract", () => {
+    const config = defineIconicPreset({
+      id: "flags",
+      name: "Flags",
+      icons: { us },
+    }).use();
+    expect(config.override).toEqual({});
+    expect(config.contract.icons.us).toBeDefined();
   });
 });

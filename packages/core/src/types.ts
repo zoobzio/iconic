@@ -1,24 +1,28 @@
 import type {
   Alias,
-  Catalog,
+  Contract,
   IconifyIcon,
+  Identity,
+  Overrides,
   Schema,
-  SetMap,
+  Set,
 } from "@iconic/schema";
 
 /**
  * The caller-owned live state an {@link Iconic} service reads and writes: the
- * catalog (base contract plus the set registry) and the active set. Pass a
- * plain object for inert state, or a reactive proxy to have reads and writes
- * tracked — the hook a framework integration binds runtime swapping to.
+ * active contract definition and the user override layer that `set` populates.
+ * Pass a plain object for inert state, or a reactive proxy to have reads and
+ * writes tracked — the hook a framework integration binds runtime swapping to.
  *
- * `catalog` is carried whole, the way untheme carries `theme`, so the contract
- * type is a single value the schema is derived from rather than a shape
- * reconstructed from separate fields.
+ * `contract` reads as the caller's own type but writes accept any
+ * contract-satisfying document: `apply` and `update` store merged contracts,
+ * which satisfy the contract without being the caller's exact type. A plain
+ * `{ contract, override }` object satisfies both sides.
  */
-export type Config<C extends Catalog> = {
-  catalog: C;
-  active: string;
+export type Config<C extends Contract> = {
+  get contract(): C;
+  set contract(value: Contract);
+  override: Overrides<Alias<C>>;
 };
 
 /**
@@ -27,63 +31,96 @@ export type Config<C extends Catalog> = {
  * integration's hook for instrumenting state without the service knowing about
  * it. Omit a slot to pass the value through untouched.
  */
-export type Options<C extends Catalog> = {
+export type Options<C extends Contract> = {
   get?: {
     config?: {
-      catalog?: (catalog: C) => C;
-      active?: (active: string) => string;
+      contract?: (contract: C) => C;
+      override?: (override: Overrides<Alias<C>>) => Overrides<Alias<C>>;
     };
   };
   set?: {
     config?: {
-      catalog?: (catalog: C) => C;
-      active?: (active: string) => string;
+      contract?: (contract: Contract) => Contract;
+      override?: (override: Overrides<Alias<C>>) => Overrides<Alias<C>>;
     };
   };
 };
 
 /**
- * A runtime icon service over a catalog. `resolve` looks an alias up through
- * the active set (its override if any, else the base) and returns the stored
- * icon literal; `swap` writes the active set through `config`; `register` files
- * a new set at runtime, validated against the contract — the door through which
- * a server-generated set enters. The active set is read and written through
- * `config`, never as a property of its own.
+ * A runtime icon service over a contract. `resolve` reads an alias through the
+ * user override then the active contract; `apply` becomes a set resolved
+ * against the construction-time baseline (clearing the override); `update`
+ * merges overrides into the active definition; `set` writes a single override.
+ * The active state is read and written through `config`.
  */
-export interface Iconic<C extends Catalog> {
+export interface Iconic<C extends Contract> {
   /**
    * The caller-owned live state, fronted by get/set middleware — the single
-   * place state is read or written raw. `config.active` is the active set.
+   * place state is read or written raw.
    */
   config: Config<C>;
 
   /** The validation bundle for the contract. */
   schema: Schema<C>;
 
-  /** Every alias in the base contract. */
+  /** Every alias in the active contract. */
   aliases(): Alias<C>[];
 
-  /** Every registered set name (the base is implicit, not listed). */
-  sets(): string[];
-
-  /** Selects the active set — the cheap runtime swap. Throws on an unknown set. */
-  swap(set: string): void;
+  /**
+   * Resolve an alias to its effective icon literal: the user override if set,
+   * else the active contract's icon. A pure lookup. Throws
+   * {@link UnknownAliasError} when the alias is not declared.
+   */
+  resolve(alias: Alias<C>): IconifyIcon;
 
   /**
-   * Resolve an alias to its stored icon literal under a set (default: the
-   * active set): the set's override if it rebinds the alias, else the base.
-   * A pure lookup — no collection, no alias tree. Throws {@link UnknownAliasError}
-   * when the alias is not in the base contract.
+   * Becomes the set resolved against the construction-time baseline — identity
+   * from the set, icons the baseline overlaid with the set's — and clears the
+   * user override. The runtime swap between whole documents. Throws
+   * {@link InvalidSetError} when the set steps outside the contract.
    */
-  resolve(alias: Alias<C>, set?: string): IconifyIcon;
-
-  /** The aliases a set rebinds (empty for the base). */
-  overrides(set: string): Alias<C>[];
+  apply(set: Set<Alias<C>>): void;
 
   /**
-   * Files a set in the registry, validated against the contract first — a set
-   * naming an unknown alias, or carrying a malformed icon, is rejected. The
-   * runtime-ingest path for a server-generated set.
+   * Merges an overrides map into the active contract's icons; identity and the
+   * user override are untouched. A definition-level edit that outlives a later
+   * `reset`. Throws {@link InvalidOverridesError} when it steps outside the
+   * contract.
    */
-  register(name: string, set: SetMap<Alias<C>>): void;
+  update(overrides: Overrides<Alias<C>>): void;
+
+  /**
+   * Writes a single alias into the user override layer — the topmost resolution
+   * layer. A write outside the contract (an unknown alias, or a malformed icon)
+   * is a silent no-op. The override holds a detached copy. Tracked by `dirty`,
+   * cleared by `reset`.
+   */
+  set(alias: Alias<C>, icon: IconifyIcon): void;
+
+  /** Whether the user override holds any edits. */
+  dirty(): boolean;
+
+  /** Clears the user override, discarding the live edits. */
+  reset(): void;
+
+  /**
+   * The effective drift from the baseline as a re-appliable overrides map: the
+   * active icons with the user override on top, diffed against the baseline
+   * icons. Aliases matching the baseline drop out. Feeding the result through
+   * `update` reproduces the drift.
+   */
+  delta(): Overrides<Alias<C>>;
+
+  /**
+   * Validates a set against the contract and returns it unchanged — the gate
+   * for a set that arrives at runtime (fetched from a catalog, authored) before
+   * it is handed to `apply` or stored. The active state is not touched.
+   */
+  create(set: Set<Alias<C>>): Set<Alias<C>>;
+
+  /**
+   * Snapshots the effective icons under a new identity as a detached contract;
+   * not applied. The build/export path for a live-edited icon set.
+   */
+  extract(identity: Identity): Contract;
 }

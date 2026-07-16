@@ -1,9 +1,13 @@
 import { SchemaError, defineSchema } from "@iconic/schema";
+import type { Contract, Set } from "@iconic/schema";
+import type { IconifyJSON } from "@iconify/types";
 
 import type {
   GenerateOptions,
   GenerateResult,
+  GenerateSetOptions,
   RefEntry,
+  Req,
   SchemeResolver,
 } from "./types";
 import { FILENAME } from "./constant";
@@ -13,9 +17,9 @@ import { assemble } from "./resolve";
 import { acquire, iconifyResolver, request, urlResolver } from "./source";
 
 /**
- * Runs a schema validation and re-frames any failure so each issue points at
- * the alias and the authored ref it came from, rather than a raw path into the
- * assembled catalog. A failure here means the resolved data is malformed —
+ * Runs a schema validation and re-frames any failure so each issue points at the
+ * alias and the authored ref it came from, rather than a raw path into the
+ * assembled document. A failure here means the resolved data is malformed —
  * either a resolution bug or a bad ref config — so the message says so.
  *
  * @param entries - The planned refs, for citing the offending ref.
@@ -28,30 +32,39 @@ export const reframe = <T>(entries: RefEntry[], run: () => T): T => {
     if (!(error instanceof SchemaError)) {
       throw error;
     }
+    const byAlias = new Map(entries.map((entry) => [entry.alias, entry.raw]));
     const lines = error.issues.map((issue) => {
       const path = issue.path ?? [];
       const at = path.join(".");
-      const origin = entries.find(
-        (entry) =>
-          path.length >= entry.path.length &&
-          entry.path.every((segment, index) => segment === path[index]),
-      );
-      const cite = origin ? ` (from ${origin.raw})` : "";
+      const alias = path.find((segment) => byAlias.has(segment));
+      const cite = alias ? ` (from ${byAlias.get(alias)})` : "";
       return `  ${at}: ${issue.message}${cite}`;
     });
     throw new Error(
-      `@iconic/iconify: the resolved catalog violates iconic's schema — this is a resolution bug or a bad ref config —\n${lines.join("\n")}`,
+      `@iconic/iconify: the resolved document violates iconic's schema — this is a resolution bug or a bad ref config —\n${lines.join("\n")}`,
       { cause: error },
     );
   }
 };
 
+// Builds the scheme-resolver map for a run: the built-in iconify (over the
+// acquired collections) and url resolvers, with any caller override merged on.
+const resolversFor = (
+  collections: Map<string, IconifyJSON>,
+  req: Req,
+  overrides: Record<string, SchemeResolver> | undefined,
+): Record<string, SchemeResolver> => ({
+  iconify: iconifyResolver(collections),
+  url: urlResolver(req),
+  ...overrides,
+});
+
 /**
- * The programmatic entry point: parses the ref config, acquires the Iconify
- * collections (batched, local-first with API fallback), resolves every ref into
- * an icon literal, validates the assembled catalog through iconic's own schema,
- * and returns the emitted file. No filesystem writes — the caller owns I/O both
- * directions.
+ * The programmatic entry point for a contract: parses the ref config, acquires
+ * the Iconify collections (batched, local-first with API fallback), resolves
+ * every ref into an icon literal, validates the assembled contract through
+ * iconic's own schema, and returns the emitted `iconic.config.ts`. No filesystem
+ * writes — the caller owns I/O both directions.
  *
  * @param options - The ref config plus I/O and resolver hooks.
  */
@@ -61,21 +74,62 @@ export const generate = async (
   const cwd = options.cwd ?? process.cwd();
   const req = options.req ?? request;
 
-  const entries = plan(options.config);
+  const { icons: refs, ...identity } = options.config;
+  const entries = plan(refs);
   const collections = await acquire(
     entries.map((entry) => entry.parsed),
     { cwd, req },
   );
+  const resolvers = resolversFor(collections, req, options.resolvers);
 
-  const resolvers: Record<string, SchemeResolver> = {
-    iconify: iconifyResolver(collections),
-    url: urlResolver(req),
-    ...options.resolvers,
-  };
+  const icons = await assemble(entries, resolvers);
+  const contract: Contract = { ...identity, icons };
+  reframe(entries, () => defineSchema(contract));
 
-  const catalog = await assemble(entries, resolvers);
-  reframe(entries, () => defineSchema(catalog));
-
-  const contents = emit(catalog, "the ref config");
+  const contents = emit(contract, "the ref config");
   return { filename: options.filename ?? FILENAME, contents };
+};
+
+/**
+ * The programmatic entry point for a set: resolves a ref map into a Set document
+ * — the catalog payload an `apply` consumes. Every ref key is membership-checked
+ * against the contract's `aliases` before resolution (a set may only rebind
+ * known aliases), the refs resolve through the same acquire/resolve pipeline,
+ * and the assembled set is validated through iconic's own schema. Emits the Set
+ * as JSON; defaults the filename to `<id>.set.json`.
+ *
+ * @param options - The set identity, the contract aliases, the ref map, and hooks.
+ */
+export const generateSet = async (
+  options: GenerateSetOptions,
+): Promise<GenerateResult> => {
+  const cwd = options.cwd ?? process.cwd();
+  const req = options.req ?? request;
+
+  const known = new Set(options.aliases);
+  const unknown = Object.keys(options.icons).filter(
+    (alias) => !known.has(alias),
+  );
+  if (unknown.length > 0) {
+    throw new Error(
+      `@iconic/iconify: the set rebinds aliases the contract does not declare: ${unknown.join(", ")}`,
+    );
+  }
+
+  const entries = plan(options.icons);
+  const collections = await acquire(
+    entries.map((entry) => entry.parsed),
+    { cwd, req },
+  );
+  const resolvers = resolversFor(collections, req, options.resolvers);
+
+  const icons = await assemble(entries, resolvers);
+  const set: Set = { ...options.identity, icons };
+  // A set carrying icons is contract-shaped, so the contract kind validates its
+  // identity and every resolved icon in one pass.
+  reframe(entries, () => defineSchema({ ...options.identity, icons }));
+
+  const contents = `${JSON.stringify(set, null, 2)}\n`;
+  const filename = options.filename ?? `${options.identity.id}.set.json`;
+  return { filename, contents };
 };

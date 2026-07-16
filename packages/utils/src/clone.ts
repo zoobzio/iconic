@@ -1,25 +1,37 @@
 import { isEqual } from "@iconic/common";
 
-import type { Catalog } from "@iconic/schema";
+import type { Contract } from "@iconic/schema";
+
+import { copy } from "./copy";
 
 /**
- * Structural copy of a catalog: the base map and the sets registry are each
- * rebuilt as fresh records, so filing a set into the copy (a service's
- * `register`) never reaches the source. The icon definition literals themselves
- * are shared by reference: they are immutable inputs, not state to detach.
- * Copying a reactive container this way yields an inert, plain snapshot.
+ * Deep copy of a contract, facet by facet: identity is rebuilt field by field
+ * (including a fresh `tags` array), and the `icons` map is rebuilt through
+ * {@link copy}, so no definition object or metadata array is shared with the
+ * source. Mutating the clone at any depth never reaches the original — the
+ * runtime holds a clone as its construction-time baseline, detached from the
+ * config it was seeded from.
  *
- * The rebuilt catalog is proven equal to the source before it is returned,
- * which also narrows it back to the source type without a cast.
+ * Optional identity fields are copied only when present, so the rebuild stays
+ * key-for-key equal to the source; that equality proof also narrows the result
+ * back to the source type without a cast. Cloning a reactive proxy this way
+ * yields an inert, plain snapshot.
  */
-export const clone = <C extends Catalog>(catalog: C): C => {
-  const result = {
-    base: { ...catalog.base },
-    sets: { ...catalog.sets },
+export const clone = <C extends Contract>(contract: C): C => {
+  const result: Contract = {
+    id: contract.id,
+    name: contract.name,
+    icons: copy(contract.icons),
   };
+  if (contract.description !== undefined) {
+    result.description = contract.description;
+  }
+  if (contract.tags !== undefined) {
+    result.tags = copy(contract.tags);
+  }
 
-  if (!isEqual(catalog, result)) {
-    throw new TypeError("unable to clone a catalog");
+  if (!isEqual(contract, result)) {
+    throw new TypeError("unable to clone a contract");
   }
 
   return result;

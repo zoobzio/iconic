@@ -1,56 +1,39 @@
 import { describe, expect, it } from "vitest";
 
-import type { IconifyIcon, SetMap } from "@iconic/schema";
+import type { Contract, IconifyIcon } from "@iconic/schema";
 
 import { defineSprite } from "../src/sprite";
 import type { Source } from "../src/types";
 
-type C = {
-  base: Record<"home" | "star", IconifyIcon>;
-  sets: Record<string, SetMap>;
+type C = Contract & { icons: Record<"home" | "star", IconifyIcon> };
+
+const icons: Record<string, IconifyIcon> = {
+  home: { body: "<path/>", width: 24, height: 24 },
+  star: { body: "<circle/>", width: 24, height: 24 },
 };
 
-const fixtures: Record<string, IconifyIcon> = {
-  "base:home": { body: "<path/>", width: 24, height: 24 },
-  "sharp:home": { body: "<rect/>", width: 24, height: 24 },
-  "base:star": { body: "<circle/>", width: 24, height: 24 },
-};
-
-const make = (active = "base"): Source<C> => ({
-  config: { active },
+const make = (): Source<C> => ({
   aliases: () => ["home", "star"],
-  sets: () => ["sharp"],
-  overrides: (set) => (set === "sharp" ? ["home"] : []),
-  resolve: (alias, set) => {
-    const active_ = set ?? "base";
-    const key =
-      active_ === "sharp" && alias === "home" ? "sharp:home" : `base:${alias}`;
-    return fixtures[key];
-  },
+  resolve: (alias) => icons[alias],
 });
 
 describe("defineSprite", () => {
-  it("emits base symbols keyed by alias", () => {
+  it("emits one symbol per alias, keyed by the bare alias", () => {
     const sheet = defineSprite(make()).sheet();
     expect(sheet).toContain('<symbol id="home"');
     expect(sheet).toContain('<symbol id="star"');
   });
 
-  it("namespaces a set's override symbols, only for aliases it rebinds", () => {
-    const sheet = defineSprite(make()).sheet();
-    expect(sheet).toContain('<symbol id="sharp/home"');
-    expect(sheet).not.toContain('id="sharp/star"');
-  });
-
-  it("computes href against the given set, falling through to base", () => {
+  it("href is the constant #alias — stable across state changes", () => {
     const sprite = defineSprite(make());
     expect(sprite.href("home")).toBe("#home");
-    expect(sprite.href("home", "sharp")).toBe("#sharp/home");
-    expect(sprite.href("star", "sharp")).toBe("#star");
+    expect(sprite.href("star")).toBe("#star");
   });
 
-  it("uses the active set for default href resolution", () => {
-    expect(defineSprite(make("sharp")).href("home")).toBe("#sharp/home");
+  it("renders a partial batch through symbols()", () => {
+    const markup = defineSprite(make()).symbols(["home"]);
+    expect(markup).toContain('<symbol id="home"');
+    expect(markup).not.toContain('id="star"');
   });
 
   it("bakes Iconify transforms into the symbol body", () => {
@@ -59,9 +42,5 @@ describe("defineSprite", () => {
       resolve: () => ({ body: "<path/>", width: 24, height: 24, hFlip: true }),
     };
     expect(defineSprite(source).symbol("home")).toContain("transform");
-  });
-
-  it("lists set overrides in the manifest", () => {
-    expect(defineSprite(make()).manifest()).toEqual({ sharp: ["home"] });
   });
 });

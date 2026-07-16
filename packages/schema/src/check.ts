@@ -1,10 +1,10 @@
-import type { Catalog, Check, Domain, Kind, Rule, Rules } from "./types";
+import type { Check, Contract, Domain, Kind, Rule, Rules } from "./types";
 
 /**
  * Builds the {@link Check} bundle: one boolean type predicate per kind. A kind
  * passes when every rule in its list returns no issue.
  */
-export const defineCheck = <C extends Catalog>(rules: Rules): Check<C> => {
+export const defineCheck = <C extends Contract>(rules: Rules): Check<C> => {
   const check =
     <K extends Kind>(list: Rule[]) =>
     (v: unknown): v is Domain<C>[K] =>
@@ -12,7 +12,8 @@ export const defineCheck = <C extends Catalog>(rules: Rules): Check<C> => {
   return {
     icon: check<"icon">(rules.icon),
     alias: check<"alias">(rules.alias),
+    overrides: check<"overrides">(rules.overrides),
     set: check<"set">(rules.set),
-    catalog: check<"catalog">(rules.catalog),
+    contract: check<"contract">(rules.contract),
   };
 };

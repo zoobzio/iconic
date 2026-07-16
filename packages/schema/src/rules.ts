@@ -1,6 +1,6 @@
 import { isObject } from "@iconic/common";
 
-import type { Catalog, Enum, Issue, Rule, Rules } from "./types";
+import type { Contract, Enum, Issue, Rule, Rules } from "./types";
 
 const issue = (
   code: Issue["code"],
@@ -60,16 +60,64 @@ const iconRule: Rule = (v) => {
 };
 
 /**
- * Builds the {@link Rules} for a catalog. The membership rules close over the
- * catalog's {@link Enum}; every icon-bearing kind defers to {@link iconRule},
- * so a base entry, a set override, and a runtime-registered icon are all held
- * to the exact same shape.
+ * A value carries a well-formed {@link Identity}: required string `id`/`name`,
+ * and — where present — a string `description` and a `tags` array of strings.
+ * The metadata every document (contract or set) is held to; a failure names the
+ * offending field.
  */
-export const defineRules = <C extends Catalog>(enums: Enum<C>): Rules => {
-  // The membership helper takes a Set<string>, so the catalog's Set<Alias<C>>
-  // is accepted by method bivariance — no cast at the call site.
+const identityRule: Rule = (v) => {
+  if (!isObject(v)) {
+    return issue("not_object", "expected an identified document", {
+      received: v,
+    });
+  }
+  if (typeof v.id !== "string") {
+    return issue("not_string", 'identity "id" must be a string', {
+      path: ["id"],
+      received: v.id,
+    });
+  }
+  if (typeof v.name !== "string") {
+    return issue("not_string", 'identity "name" must be a string', {
+      path: ["name"],
+      received: v.name,
+    });
+  }
+  if (v.description !== undefined && typeof v.description !== "string") {
+    return issue("not_string", 'identity "description" must be a string', {
+      path: ["description"],
+      received: v.description,
+    });
+  }
+  if (v.tags !== undefined) {
+    if (!Array.isArray(v.tags)) {
+      return issue("not_array", 'identity "tags" must be an array', {
+        path: ["tags"],
+        received: v.tags,
+      });
+    }
+    for (let index = 0; index < v.tags.length; index++) {
+      if (typeof v.tags[index] !== "string") {
+        return issue("not_string", 'identity "tags" entries must be strings', {
+          path: ["tags", String(index)],
+          received: v.tags[index],
+        });
+      }
+    }
+  }
+  return undefined;
+};
+
+/**
+ * Builds the {@link Rules} for a contract. The membership rules close over the
+ * contract's {@link Enum}; `overrides` and `set` prove known-alias membership,
+ * while `contract` does not — the contract is what *defines* the aliases.
+ */
+export const defineRules = <C extends Contract>(enums: Enum<C>): Rules => {
+  // The membership helper takes a ReadonlySet<string>, so the contract's
+  // ReadonlySet<Alias<C>> is accepted by covariance — no cast at the call site.
   const member =
-    (set: Set<string>) =>
+    (set: ReadonlySet<string>) =>
     (v: unknown): boolean =>
       typeof v === "string" && set.has(v);
   const isAlias = member(enums.aliases);
@@ -79,21 +127,17 @@ export const defineRules = <C extends Catalog>(enums: Enum<C>): Rules => {
       ? undefined
       : issue("unknown_alias", `unknown alias "${String(v)}"`, { received: v });
 
-  const setRule: Rule = (v) => {
+  const overridesRule: Rule = (v) => {
     if (!isObject(v)) {
-      return issue("not_object", "expected a set of overrides", {
+      return issue("not_object", "expected a map of overrides", {
         received: v,
       });
     }
     for (const [alias, icon] of Object.entries(v)) {
       if (!isAlias(alias)) {
-        return issue(
-          "unknown_alias",
-          `set overrides unknown alias "${alias}"`,
-          {
-            path: [alias],
-          },
-        );
+        return issue("unknown_alias", `overrides unknown alias "${alias}"`, {
+          path: [alias],
+        });
       }
       const bad = iconRule(icon);
       if (bad) {
@@ -103,32 +147,37 @@ export const defineRules = <C extends Catalog>(enums: Enum<C>): Rules => {
     return undefined;
   };
 
-  const catalogRule: Rule = (v) => {
-    if (!isObject(v)) {
-      return issue("not_object", "expected a catalog", { received: v });
+  const setRule: Rule = (v) => {
+    const bad = identityRule(v);
+    if (bad) {
+      return bad;
     }
-    if (!isObject(v.base)) {
-      return issue("missing_key", "catalog is missing a base map", {
-        path: ["base"],
+    if (isObject(v) && v.icons !== undefined) {
+      const badIcons = overridesRule(v.icons);
+      if (badIcons) {
+        return { ...badIcons, path: ["icons", ...(badIcons.path ?? [])] };
+      }
+    }
+    return undefined;
+  };
+
+  const contractRule: Rule = (v) => {
+    const bad = identityRule(v);
+    if (bad) {
+      return bad;
+    }
+    if (!isObject(v)) {
+      return issue("not_object", "expected a contract", { received: v });
+    }
+    if (!isObject(v.icons)) {
+      return issue("missing_key", "contract is missing an icons map", {
+        path: ["icons"],
       });
     }
-    for (const [alias, icon] of Object.entries(v.base)) {
-      const bad = iconRule(icon);
-      if (bad) {
-        return { ...bad, path: ["base", alias, ...(bad.path ?? [])] };
-      }
-    }
-    if (v.sets !== undefined) {
-      if (!isObject(v.sets)) {
-        return issue("not_object", "catalog sets must be an object", {
-          path: ["sets"],
-        });
-      }
-      for (const [name, set] of Object.entries(v.sets)) {
-        const bad = setRule(set);
-        if (bad) {
-          return { ...bad, path: ["sets", name, ...(bad.path ?? [])] };
-        }
+    for (const [alias, icon] of Object.entries(v.icons)) {
+      const badIcon = iconRule(icon);
+      if (badIcon) {
+        return { ...badIcon, path: ["icons", alias, ...(badIcon.path ?? [])] };
       }
     }
     return undefined;
@@ -137,7 +186,8 @@ export const defineRules = <C extends Catalog>(enums: Enum<C>): Rules => {
   return {
     icon: [iconRule],
     alias: [stringRule, membershipRule],
+    overrides: [overridesRule],
     set: [setRule],
-    catalog: [catalogRule],
+    contract: [contractRule],
   };
 };

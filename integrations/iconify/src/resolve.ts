@@ -1,24 +1,23 @@
-import type { AliasMap, Catalog, SetMap } from "@iconic/schema";
+import type { IconifyIcon } from "@iconic/schema";
 
 import type { RefEntry, SchemeResolver } from "./types";
 
 /**
- * Resolves every planned ref into its icon literal and assembles the flat
- * catalog. Each entry's parsed scheme selects its resolver; the resolved icon
- * is placed at the entry's catalog path. Misses (a resolver returning `null`)
- * are collected across the whole config and thrown once, listing every failing
- * `path → ref` — the same all-at-once ethos as the schema's issue list, so a
- * config with several bad refs surfaces them together, not one per run.
+ * Resolves every planned ref into its icon literal and assembles the flat icons
+ * map. Each entry's parsed scheme selects its resolver; the resolved icon is
+ * keyed by the entry's alias. Misses (a resolver returning `null`) are collected
+ * across the whole map and thrown once, listing every failing `alias → ref` —
+ * the same all-at-once ethos as the schema's issue list, so a config with
+ * several bad refs surfaces them together, not one per run.
  *
- * @param entries - The planned refs across base and sets.
+ * @param entries - The planned refs.
  * @param resolvers - Scheme-keyed resolvers (`iconify`, `url`, and overrides).
  */
 export const assemble = async (
   entries: RefEntry[],
   resolvers: Record<string, SchemeResolver>,
-): Promise<Catalog> => {
-  const base: AliasMap = {};
-  const sets: Record<string, SetMap> = {};
+): Promise<Record<string, IconifyIcon>> => {
+  const icons: Record<string, IconifyIcon> = {};
   const misses: RefEntry[] = [];
 
   for (const entry of entries) {
@@ -33,22 +32,17 @@ export const assemble = async (
       misses.push(entry);
       continue;
     }
-    if (entry.path[0] === "base") {
-      base[entry.alias] = icon;
-    } else {
-      const set = entry.path[1];
-      (sets[set] ??= {})[entry.alias] = icon;
-    }
+    icons[entry.alias] = icon;
   }
 
   if (misses.length > 0) {
     const lines = misses
-      .map((miss) => `  ${miss.path.join(".")} → ${miss.raw}`)
+      .map((miss) => `  ${miss.alias} → ${miss.raw}`)
       .join("\n");
     throw new Error(
       `@iconic/iconify: ${misses.length} icon(s) could not be resolved —\n${lines}`,
     );
   }
 
-  return { base, sets };
+  return icons;
 };

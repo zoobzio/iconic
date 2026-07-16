@@ -1,36 +1,35 @@
-import type { AliasMap, Catalog } from "@iconic/schema";
+import type { AliasMap, Contract } from "@iconic/schema";
 import type { Config } from "@iconic/core";
 import type { Extension, extend } from "@iconic/utils";
 
 /**
- * The authoring handle for a preset over a catalog `C`. `configure` strings
- * another pack of aliases onto the base, widening `C`'s alias union; `use`
- * produces a ready {@link Config} for `makeIconic`, so the resulting service
- * knows every alias accumulated across the chain.
+ * The authoring handle for a preset over a contract `C`. `configure` strings
+ * another pack of icons onto the contract, widening `C`'s alias union while
+ * keeping the root preset's identity; `use` produces a ready {@link Config} for
+ * `makeIconic`, so the resulting service knows every alias accumulated across
+ * the chain.
  */
-export interface Preset<C extends Catalog> {
+export interface Preset<C extends Contract> {
   /**
-   * The accumulated catalog. It is also `Extension`-shaped (`{ base, sets }`),
+   * The accumulated contract. Its `icons` also make it `Extension`-compatible,
    * so it doubles as the input to another preset's `configure` — the way two
-   * separately-defined presets chain: `a.configure(b.catalog)`.
+   * separately-defined presets chain: `a.configure(b.contract)`.
    */
-  readonly catalog: C;
+  readonly contract: C;
 
   /**
-   * Widens the preset by an extension: its aliases fold into the base (new keys
-   * join the contract, existing keys re-point) and its sets merge into the
-   * registry. A preset's own `catalog` is a valid extension, so passing one here
-   * composes two presets. Returns a preset over the widened catalog, itself
-   * configurable — so packs chain, and the accumulated alias union rides along
-   * at the type level.
+   * Widens the preset by an extension: its icons fold into the contract (new
+   * keys join, existing keys re-point), the root identity unchanged. Returns a
+   * preset over the widened contract, itself configurable — so packs chain, and
+   * the accumulated alias union rides along at the type level.
    */
   configure: <const XBase extends AliasMap>(
     extension: Extension<XBase>,
   ) => Preset<ReturnType<typeof extend<C, XBase>>>;
 
   /**
-   * Builds a ready service config for `makeIconic`: a detached copy of the
-   * accumulated catalog and the given active set (default `"base"`).
+   * Builds a ready service config for `makeIconic`: a detached clone of the
+   * accumulated contract and an empty user override.
    */
-  use: (active?: string) => Config<C>;
+  use: () => Config<C>;
 }

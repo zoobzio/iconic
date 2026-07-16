@@ -1,29 +1,21 @@
-import type { AliasMap, SetMap } from "@iconic/schema";
+import type { Contract } from "@iconic/schema";
 
-import type { Iconic } from "./types";
+import type { Iconic, Options } from "./types";
 import { makeIconic } from "./factory";
 
 /**
- * Creates a runtime {@link Iconic} service from a base alias contract and
- * optional override sets — the front door for defining an icon set inline.
- * `Base` is inferred from the alias keys, so `resolve` autocompletes the
- * contract's aliases and a typo fails to compile. Sets are a `string`-keyed
- * registry rather than a fixed union, since new ones can be registered at
- * runtime.
+ * Creates a runtime {@link Iconic} service from an authored contract — the front
+ * door for defining an icon set inline. `C` is inferred with `const` from the
+ * contract literal, so `resolve` autocompletes the contract's aliases and a typo
+ * fails to compile. Seeds a fresh state container (`{ contract, override: {} }`)
+ * around the contract and boots {@link makeIconic}.
  *
- * @param config - The base contract, seed sets, and (optional) active set.
- * @returns An {@link Iconic} service over the assembled catalog.
- * @throws InvalidCatalogError when the base or a seed set violates the contract.
+ * @param contract - The identified base document: identity plus the icons map.
+ * @param options - Read/write middleware over the seeded container.
+ * @returns An {@link Iconic} service over the contract.
+ * @throws InvalidContractError when the contract violates its own shape.
  */
-export const defineIconic = <const Base extends AliasMap>({
-  base,
-  sets = {},
-  active = "base",
-}: {
-  base: Base;
-  sets?: Record<string, SetMap<Extract<keyof Base, string>>>;
-  active?: string;
-}): Iconic<{
-  base: Base;
-  sets: Record<string, SetMap<Extract<keyof Base, string>>>;
-}> => makeIconic({ catalog: { base, sets }, active });
+export const defineIconic = <const C extends Contract>(
+  contract: C,
+  options: Options<C> = {},
+): Iconic<C> => makeIconic({ contract, override: {} }, options);

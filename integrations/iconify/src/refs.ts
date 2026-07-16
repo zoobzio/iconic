@@ -1,6 +1,6 @@
 import { stringToIcon } from "@iconify/utils";
 
-import type { ParsedRef, RefConfig, RefEntry } from "./types";
+import type { ParsedRef, RefEntry } from "./types";
 
 /** The URL scheme sigil: `$/host/path` fetches a single icon from a URL. */
 const URL_SIGIL = "$/";
@@ -41,30 +41,15 @@ export const parseRef = (alias: string, raw: string): ParsedRef => {
 };
 
 /**
- * Flattens a {@link RefConfig} into the list of {@link RefEntry} work items,
- * parsing every ref up front so a bad ref fails before any acquisition. Each
- * entry carries its path in the emitted catalog (`["base", alias]` or
- * `["sets", set, alias]`), so resolution can place the resolved icon back.
+ * Parses an `icons` ref map into the list of {@link RefEntry} work items,
+ * parsing every ref up front so a bad ref fails before any acquisition. Shared
+ * by {@link generate} (the contract's icons) and {@link generateSet} (the set's
+ * icons).
  */
-export const plan = (config: RefConfig): RefEntry[] => {
-  const entries: RefEntry[] = [];
-  for (const [alias, raw] of Object.entries(config.base)) {
-    entries.push({
-      path: ["base", alias],
-      alias,
-      raw,
-      parsed: parseRef(alias, raw),
-    });
-  }
-  for (const [set, overrides] of Object.entries(config.sets ?? {})) {
-    for (const [alias, raw] of Object.entries(overrides)) {
-      entries.push({
-        path: ["sets", set, alias],
-        alias,
-        raw,
-        parsed: parseRef(alias, raw),
-      });
-    }
-  }
-  return entries;
+export const plan = (icons: Record<string, string>): RefEntry[] => {
+  return Object.entries(icons).map(([alias, raw]) => ({
+    alias,
+    raw,
+    parsed: parseRef(alias, raw),
+  }));
 };

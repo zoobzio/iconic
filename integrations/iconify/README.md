@@ -1,13 +1,15 @@
 # @iconic/iconify
 
-Codegen from an authored **ref config** to an `iconic.config.ts` of resolved
-icon literals. The build-layer analog of iconic's runtime: it holds all the
-IconifyJSON handling — loading collections, flattening alias chains, merging
-transforms — so the runtime carries none of it.
+Codegen from an authored **ref config** to an `iconic.config.ts` contract of
+resolved icon literals — and from a ref map to a **set** JSON document. The
+build-layer analog of iconic's runtime: it holds all the IconifyJSON handling —
+loading collections, flattening alias chains, merging transforms — so the
+runtime carries none of it.
 
 You name the icons an app uses by their Iconify reference; `generate()` resolves
-each one into a self-contained icon definition literal and emits a flat catalog
-the runtime consumes directly.
+each one into a self-contained icon definition literal and emits a contract the
+runtime consumes directly. `generateSet()` does the same for a switchable set —
+the catalog payload an `apply` consumes.
 
 ## Ref grammar
 
@@ -19,22 +21,29 @@ the runtime consumes directly.
 
 ## Programmatic
 
-`generate()` does no filesystem writes and owns no I/O: a caller-supplied `req`
-intercepts every fetch (authentication, offline fixtures), and the result is
-the file contents for the caller to write.
+`generate()` / `generateSet()` do no filesystem writes and own no I/O: a
+caller-supplied `req` intercepts every fetch (authentication, offline fixtures),
+and the result is the file contents for the caller to write.
 
 ```ts
 import { writeFile } from "node:fs/promises";
-import { generate } from "@iconic/iconify";
+import { generate, generateSet } from "@iconic/iconify";
 
-const { filename, contents } = await generate({
+const contract = await generate({
   config: {
-    base: { home: "lucide:home", save: "lucide:content-save" },
-    sets: { solid: { home: "lucide-solid:home" } },
+    id: "app",
+    name: "App Icons",
+    icons: { home: "lucide:home", save: "lucide:content-save" },
   },
 });
+await writeFile(contract.filename, contract.contents); // iconic.config.ts
 
-await writeFile(filename, contents);
+const set = await generateSet({
+  identity: { id: "solid", name: "Solid" },
+  aliases: ["home", "save"],
+  icons: { home: "lucide-solid:home" },
+});
+await writeFile(set.filename, set.contents); // solid.set.json
 ```
 
 The emitted `iconic.config.ts`:
@@ -43,9 +52,22 @@ The emitted `iconic.config.ts`:
 import { defineIconicConfig } from "iconic/config";
 
 export default defineIconicConfig({
-  base: { home: { body: "…", width: 24, height: 24 } },
-  sets: { solid: { home: { body: "…" } } },
+  contract: {
+    id: "app",
+    name: "App Icons",
+    icons: { home: { body: "…", width: 24, height: 24 } },
+  },
 });
+```
+
+The emitted `solid.set.json` — the catalog payload:
+
+```json
+{
+  "id": "solid",
+  "name": "Solid",
+  "icons": { "home": { "body": "…" } }
+}
 ```
 
 ## Boundaries
@@ -53,8 +75,10 @@ export default defineIconicConfig({
 - Resolution is scheme-keyed; `options.resolvers` overrides the built-in
   `iconify` / `url` behaviour (a custom endpoint, an offline fixture).
 - Every unresolvable ref is collected and reported together, each as
-  `path → ref`.
-- The assembled catalog is validated through `@iconic/schema` before emission;
+  `alias → ref`.
+- `generateSet` membership-checks each ref key against the contract's `aliases`
+  before resolving — a set may only rebind aliases the contract declares.
+- The assembled document is validated through `@iconic/schema` before emission;
   a failure there is a resolution bug or a bad config, cited to the ref.
 - `$/` responses are trusted, not sanitized — untrusted sources are a separate
   concern.

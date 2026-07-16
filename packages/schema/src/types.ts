@@ -1,6 +1,6 @@
 import type { IconifyIcon } from "@iconify/types";
 
-// The Iconify spec's single-icon type is re-exported as-is: iconic's catalog is
+// The Iconify spec's single-icon type is re-exported as-is: iconic's contract is
 // a flat map of resolved icon definition literals in Iconify format, so this is
 // the one spec type the runtime contract is built from. The IconifyJSON
 // collection format — the *source* documents — belongs to the build layer
@@ -8,39 +8,60 @@ import type { IconifyIcon } from "@iconify/types";
 export type { IconifyIcon };
 
 /**
- * The base alias map — iconic's contract. Keys are the semantic aliases, values
- * are resolved icon definition literals (`{ body, width, ... }`). No collection
- * or reference is carried: the catalog holds the icon data itself.
+ * The identity and discovery metadata every iconic document carries: a required
+ * `id` (the stable key a catalog retrieves by) and `name` (display), plus
+ * optional `description` and `tags` a picker renders and a catalog query
+ * filters on.
  */
+export type Identity = {
+  id: string;
+  name: string;
+  description?: string;
+  tags?: string[];
+};
+
+/** The base alias map — keys are the semantic aliases, values resolved icons. */
 export type AliasMap = Record<string, IconifyIcon>;
 
 /**
- * A set: a partial override of the base alias map. A set may only rebind
- * aliases that already exist in the base (a known-alias partial override), and
- * each override is itself a resolved icon literal.
+ * A partial override of the base alias map: a subset of known aliases each
+ * rebound to a resolved icon literal. The payload a {@link Set} carries and
+ * `apply`/`update` merge in.
  */
-export type SetMap<Alias extends string = string> = Partial<
-  Record<Alias, IconifyIcon>
+export type Overrides<A extends string = string> = Partial<
+  Record<A, IconifyIcon>
 >;
 
 /**
- * The contract a schema validates against: the base alias map plus a registry
- * of override sets. Sets are a `string`-keyed registry, not a fixed union —
- * they can be registered at runtime (server-generated sets), so only the base
- * aliases are type-bearing. The active selection is runtime state on the core
- * service, not part of the static contract.
+ * The identified base document: identity plus the complete `icons` map that
+ * defines every alias. The single value a schema is derived from and the runtime
+ * resolves against — the analog of a theme.
  */
-export type Catalog = { base: AliasMap; sets: Record<string, SetMap> };
+export type Contract = Identity & { icons: AliasMap };
 
-/** Any alias name declared by a catalog's base — the one type-bearing union. */
-export type Alias<C extends Catalog> = keyof C["base"] & string;
+/**
+ * A switchable layer over a contract: identity plus an optional `icons` map of
+ * known-alias overrides. The catalog payload and the argument to `apply` — it
+ * rebinds a subset of the contract's aliases and carries its own identity.
+ */
+export type Set<A extends string = string> = Identity & {
+  icons?: Overrides<A>;
+};
+
+/** Any alias name declared by a contract's icons — the one type-bearing union. */
+export type Alias<C extends Contract> = keyof C["icons"] & string;
 
 /**
  * The closed set of failure kinds a validation rule can emit. A stable
  * discriminant callers branch on, rather than a free-text string.
  */
 export type Code =
-  "not_string" | "not_object" | "not_icon" | "unknown_alias" | "missing_key";
+  | "not_string"
+  | "not_object"
+  | "not_array"
+  | "not_icon"
+  | "unknown_alias"
+  | "missing_key";
 
 /**
  * A validation failure. `code` is the stable discriminant, `message` is
@@ -61,32 +82,32 @@ export type Issue = {
 export type Rule = (v: unknown) => Issue | undefined;
 
 /**
- * The validation vocabulary for a catalog: each kind mapped to the type a
- * value of that kind narrows to. `icon` is a resolved icon definition literal,
- * `alias` a known alias name, `set` a partial override, `catalog` the whole
- * contract.
+ * The validation vocabulary for a contract: each kind mapped to the type a
+ * value of that kind narrows to. `icon` is a resolved icon literal, `alias` a
+ * known alias name, `overrides` a bare partial map, `set` an identified layer,
+ * `contract` the whole base document.
  */
-export type Domain<C extends Catalog> = {
+export type Domain<C extends Contract> = {
   icon: IconifyIcon;
   alias: Alias<C>;
-  set: SetMap<Alias<C>>;
-  catalog: C;
+  overrides: Overrides<Alias<C>>;
+  set: Set<Alias<C>>;
+  contract: C;
 };
 
 /** The name of a kind — a key of {@link Domain}. */
-export type Kind = keyof Domain<Catalog>;
+export type Kind = keyof Domain<Contract>;
 
 /** A list of {@link Rule}s per kind; a value passes a kind when all return no issue. */
 export type Rules = { [K in Kind]: Rule[] };
 
 /**
- * The sets a schema reads off a catalog: its declared alias names. The
- * membership checks draw on these. The set *registry* is intentionally not
- * captured — it goes stale after a runtime `register`, and the live catalog is
- * the only source of truth for which sets exist.
+ * The aliases a schema reads off a contract: its declared alias names, read from
+ * `contract.icons`. The membership checks draw on these. Held as a read-only set
+ * so the layer type {@link Set} can own the bare name without shadowing it.
  */
-export type Enum<C extends Catalog> = {
-  aliases: Set<Alias<C>>;
+export type Enum<C extends Contract> = {
+  aliases: ReadonlySet<Alias<C>>;
 };
 
 /** The outcome of an {@link Inspect}: the narrowed value, or the issues. */
@@ -94,7 +115,7 @@ export type Result<V> =
   { success: true; data: V } | { success: false; issues: Issue[] };
 
 /** Boolean type predicates per kind. */
-export type Check<C extends Catalog> = {
+export type Check<C extends Contract> = {
   [K in Kind]: (v: unknown) => v is Domain<C>[K];
 };
 
@@ -103,29 +124,30 @@ export type Check<C extends Catalog> = {
  * throw a {@link SchemaError}. Spelled out per kind since `asserts` predicates
  * cannot be produced by a mapped type.
  */
-export type Assert<C extends Catalog> = {
+export type Assert<C extends Contract> = {
   icon: (v: unknown) => asserts v is IconifyIcon;
   alias: (v: unknown) => asserts v is Alias<C>;
-  set: (v: unknown) => asserts v is SetMap<Alias<C>>;
-  catalog: (v: unknown) => asserts v is C;
+  overrides: (v: unknown) => asserts v is Overrides<Alias<C>>;
+  set: (v: unknown) => asserts v is Set<Alias<C>>;
+  contract: (v: unknown) => asserts v is C;
 };
 
 /** Parse functions per kind: assert and return the value narrowed. */
-export type Parse<C extends Catalog> = {
+export type Parse<C extends Contract> = {
   [K in Kind]: (v: unknown) => Domain<C>[K];
 };
 
 /** Inspect functions per kind: return a {@link Result} rather than throwing. */
-export type Inspect<C extends Catalog> = {
+export type Inspect<C extends Contract> = {
   [K in Kind]: (v: unknown) => Result<Domain<C>[K]>;
 };
 
 /**
- * The bundle {@link defineSchema} returns for a catalog: the source catalog,
- * the sets read off it, and the check / assert / parse / inspect families
- * built from the rules.
+ * The bundle {@link defineSchema} returns for a contract: the source contract
+ * (the construction-time baseline), the aliases read off it, and the check /
+ * assert / parse / inspect families built from the rules.
  */
-export type Schema<C extends Catalog> = {
+export type Schema<C extends Contract> = {
   base: C;
   enums: Enum<C>;
   check: Check<C>;

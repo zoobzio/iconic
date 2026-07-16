@@ -1,36 +1,45 @@
-import { keys } from "@iconic/common";
+import { isEqual, keys } from "@iconic/common";
 import { defineSchema } from "@iconic/schema";
-import type { Alias, Catalog, IconifyIcon, SetMap } from "@iconic/schema";
+import type {
+  Alias,
+  Contract,
+  IconifyIcon,
+  Identity,
+  Overrides,
+  Schema,
+  Set,
+} from "@iconic/schema";
+import { clone, copy, merge } from "@iconic/utils";
 
 import type { Config, Iconic, Options } from "./types";
 import {
-  InvalidCatalogError,
+  InvalidContractError,
+  InvalidOverridesError,
   InvalidSetError,
   UnknownAliasError,
-  UnknownSetError,
   reframe,
 } from "./error";
 
 /**
- * Builds the runtime {@link Iconic} service over a state container.
+ * Builds the runtime {@link Iconic} service over a state container, for any
+ * complete contract — authored via {@link defineIconic}, or machine-built (a
+ * `configure`-widened preset, a merged contract) whose icons only the runtime
+ * schema can rule on. The contract is validated against its own shape up front
+ * either way.
  *
- * Every read and write goes through `proxy`, so the caller decides whether
- * state is plain (tests, node) or a reactive proxy (Vue); `options` can
- * intercept and transform each read and write on the way through. The active
- * set is read as `proxy.active` and written by `swap`, so a service inside a
- * reactive scope re-resolves when the state it read changes. Validation is
- * derived from the catalog up front via {@link defineSchema}; a malformed
- * catalog fails fast as an {@link InvalidCatalogError}.
+ * Every read and write goes through `proxy`, so the caller decides whether state
+ * is plain (tests, node) or a reactive proxy (Vue); `options` can intercept and
+ * transform each read and write. `resolve` reads the active contract's icon with
+ * the user override on top; `set` writes only the override; `update` and `apply`
+ * change the definition. Applying a set clears the override.
  *
- * The catalog is a flat map of resolved icon literals — the service holds no
- * IconifyJSON collection and does no alias-tree resolution. `resolve` is a pure
- * lookup (set override → base); all Iconify source handling happened at build
- * time in `@iconic/iconify`.
+ * The baseline — a detached clone of the contract at construction, held as
+ * `schema.base` — is what `apply` resolves sets against and `delta` diffs from.
  *
- * @param config - The caller-owned container: the catalog and the active set.
+ * @param config - The caller-owned container: active contract and override.
  * @param options - Read/write middleware over `config`.
  */
-export const makeIconic = <C extends Catalog>(
+export const makeIconic = <C extends Contract>(
   config: Config<C>,
   options: Options<C> = {},
 ): Iconic<C> => {
@@ -42,90 +51,124 @@ export const makeIconic = <C extends Catalog>(
    * a missing middleware is a passthrough.
    */
   const proxy: Config<C> = {
-    get catalog() {
-      const through = options.get?.config?.catalog;
-      return through ? through(config.catalog) : config.catalog;
+    get contract() {
+      const through = options.get?.config?.contract;
+      return through ? through(config.contract) : config.contract;
     },
-    set catalog(value) {
-      const through = options.set?.config?.catalog;
-      config.catalog = through ? through(value) : value;
+    set contract(value) {
+      const through = options.set?.config?.contract;
+      config.contract = through ? through(value) : value;
     },
-    get active() {
-      const through = options.get?.config?.active;
-      return through ? through(config.active) : config.active;
+    get override() {
+      const through = options.get?.config?.override;
+      return through ? through(config.override) : config.override;
     },
-    set active(value) {
-      const through = options.set?.config?.active;
-      config.active = through ? through(value) : value;
+    set override(value) {
+      const through = options.set?.config?.override;
+      config.override = through ? through(value) : value;
     },
   };
 
-  const schema = reframe(InvalidCatalogError, () =>
-    defineSchema(proxy.catalog),
+  /**
+   * Validation derived from the baseline — a complete contract is itself a valid
+   * document. The contract is cloned on the way in, so `schema.base` doubles as
+   * the detached baseline snapshot the merge and delta paths work from, never a
+   * live reference into a reactive container.
+   */
+  const schema: Schema<C> = reframe(InvalidContractError, () =>
+    defineSchema(clone(proxy.contract)),
   );
 
-  const isSet = (set: string): boolean =>
-    set === "base" || set in proxy.catalog.sets;
+  const aliases = (): Alias<C>[] => keys(proxy.contract.icons);
 
-  if (!isSet(proxy.active)) {
-    throw new UnknownSetError(proxy.active);
-  }
-
-  const aliases = (): Alias<C>[] => keys(proxy.catalog.base);
-
-  const sets = (): string[] => keys(proxy.catalog.sets);
-
-  const resolve = (
-    alias: Alias<C>,
-    set: string = proxy.active,
-  ): IconifyIcon => {
-    if (set !== "base") {
-      const override = proxy.catalog.sets[set]?.[alias];
-      if (override) {
-        return override;
-      }
+  const resolve = (alias: Alias<C>): IconifyIcon => {
+    const override = proxy.override[alias];
+    if (override) {
+      return override;
     }
-    const base = proxy.catalog.base[alias];
-    if (!base) {
+    const icon = proxy.contract.icons[alias];
+    if (!icon) {
       throw new UnknownAliasError(alias);
     }
-    return base;
+    return icon;
   };
 
-  // The aliases a set overrides — derived by testing which base aliases the
-  // set carries, so each stays typed as an Alias<C> (the set's own keys erase
-  // to string in the registry type).
-  const overrides = (set: string): Alias<C>[] => {
-    if (set === "base") {
-      return [];
-    }
-    const entry = proxy.catalog.sets[set];
-    if (!entry) {
-      return [];
-    }
-    return aliases().filter((alias) => alias in entry);
-  };
-
-  const swap = (set: string): void => {
-    if (!isSet(set)) {
-      throw new UnknownSetError(set);
-    }
-    proxy.active = set;
-  };
-
-  const register = (name: string, set: SetMap<Alias<C>>): void => {
+  const apply = (set: Set<Alias<C>>): void => {
     reframe(InvalidSetError, () => schema.assert.set(set));
-    proxy.catalog.sets[name] = set;
+    proxy.contract = merge(schema.base, set);
+    proxy.override = {};
+  };
+
+  const update = (overrides: Overrides<Alias<C>>): void => {
+    reframe(InvalidOverridesError, () => schema.assert.overrides(overrides));
+    const active = proxy.contract;
+    proxy.contract = {
+      ...active,
+      icons: { ...active.icons, ...copy(overrides) },
+    };
+  };
+
+  const set = (alias: Alias<C>, icon: IconifyIcon): void => {
+    if (!schema.check.overrides({ [alias]: icon })) {
+      return;
+    }
+    proxy.override = { ...proxy.override, [alias]: copy(icon) };
+  };
+
+  const dirty = (): boolean => Object.keys(proxy.override).length > 0;
+
+  const reset = (): void => {
+    proxy.override = {};
+  };
+
+  // The effective icon for an alias — the user override on top of the active
+  // contract — without the missing-alias throw `resolve` carries.
+  const effective = (alias: Alias<C>): IconifyIcon =>
+    proxy.override[alias] ?? proxy.contract.icons[alias];
+
+  const delta = (): Overrides<Alias<C>> => {
+    const baseline = schema.base.icons;
+    // Keyed as a plain record: a generic `Overrides<Alias<C>>` cannot be indexed
+    // for writing. Every key is a real alias, so it is a valid Overrides on exit.
+    const out: Record<string, IconifyIcon> = {};
+    for (const alias of keys(proxy.contract.icons)) {
+      const current = effective(alias);
+      if (!isEqual(baseline[alias], current)) {
+        out[alias] = current;
+      }
+    }
+    // Narrow the plain record back to a typed Overrides through the schema —
+    // every key is a known alias, so this always passes, and it avoids a cast.
+    return schema.parse.overrides(out);
+  };
+
+  const create = (set: Set<Alias<C>>): Set<Alias<C>> => {
+    reframe(InvalidSetError, () => schema.assert.set(set));
+    return set;
+  };
+
+  const extract = (identity: Identity): Contract => {
+    const icons: Contract["icons"] = {};
+    for (const alias of keys(proxy.contract.icons)) {
+      icons[alias] = copy(effective(alias));
+    }
+    const contract = { ...identity, icons };
+    reframe(InvalidContractError, () => schema.assert.contract(contract));
+    return contract;
   };
 
   return {
     config: proxy,
     schema,
     aliases,
-    sets,
-    swap,
     resolve,
-    overrides,
-    register,
+    apply,
+    update,
+    set,
+    dirty,
+    reset,
+    delta,
+    create,
+    extract,
   };
 };

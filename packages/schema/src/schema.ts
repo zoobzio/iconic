@@ -1,4 +1,4 @@
-import type { Assert, Catalog, Schema } from "./types";
+import type { Assert, Contract, Schema } from "./types";
 
 import { defineAssert } from "./assert";
 import { defineCheck } from "./check";
@@ -8,20 +8,22 @@ import { defineParse } from "./parse";
 import { defineRules } from "./rules";
 
 /**
- * Builds the runtime validation {@link Schema} for a catalog.
+ * Builds the runtime validation {@link Schema} for a contract.
  *
- * `enums` reads the alias names off the catalog; `rules` derives the per-kind
+ * `enums` reads the alias names off the contract; `rules` derives the per-kind
  * checks (each icon-bearing kind holding values to the Iconify icon-literal
  * shape); `check` runs them as boolean predicates, `assert` throws a
  * {@link SchemaError} carrying every issue, `parse` asserts and narrows, and
  * `inspect` captures the outcome as a {@link Result}.
  *
- * The catalog is validated against the `catalog` kind before the schema is
- * returned, so a malformed contract fails fast at construction.
+ * The contract is validated against the `contract` kind before the schema is
+ * returned, so a malformed contract fails fast at construction. The passed
+ * value is kept as `base` — the construction-time baseline the runtime's `apply`
+ * and `delta` resolve against.
  *
- * @param base - The catalog whose base and sets define the contract.
+ * @param base - The contract whose identity and icons define the contract.
  */
-export const defineSchema = <const C extends Catalog>(base: C): Schema<C> => {
+export const defineSchema = <const C extends Contract>(base: C): Schema<C> => {
   const enums = defineEnum(base);
   const rules = defineRules<C>(enums);
   const check = defineCheck<C>(rules);
@@ -29,7 +31,7 @@ export const defineSchema = <const C extends Catalog>(base: C): Schema<C> => {
   const parse = defineParse<C>(assert);
   const inspect = defineInspect<C>(parse);
 
-  assert.catalog(base);
+  assert.contract(base);
 
   return { base, enums, check, assert, parse, inspect };
 };

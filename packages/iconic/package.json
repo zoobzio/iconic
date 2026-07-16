@@ -17,6 +17,10 @@
       "types": "./.dist/config.d.ts",
       "import": "./.dist/config.mjs"
     },
+    "./catalog": {
+      "types": "./.dist/catalog.d.ts",
+      "import": "./.dist/catalog.mjs"
+    },
     "./svg": {
       "types": "./.dist/svg.d.ts",
       "import": "./.dist/svg.mjs"
@@ -37,6 +41,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@iconic/catalog": "workspace:*",
     "@iconic/common": "workspace:*",
     "@iconic/core": "workspace:*",
     "@iconic/kit": "workspace:*",

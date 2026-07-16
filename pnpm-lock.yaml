@@ -63,6 +63,9 @@ importers:
         specifier: ^3.1.4
         version: 3.1.4
     devDependencies:
+      '@iconic/catalog':
+        specifier: workspace:*
+        version: link:../../packages/catalog
       '@types/node':
         specifier: ^25.9.1
         version: 25.9.5
@@ -92,6 +95,15 @@ importers:
         specifier: ^4.4.6
         version: 4.4.8(@babel/plugin-syntax-jsx@7.29.7(@babel/core@7.29.7))(@babel/plugin-syntax-typescript@7.29.7(@babel/core@7.29.7))(@parcel/watcher@2.5.6)(@types/node@25.9.5)(@vue/compiler-sfc@3.5.39)(cac@6.7.14)(db0@0.3.4)(esbuild@0.28.1)(eslint@10.7.0(jiti@2.7.0))(ioredis@5.11.1)(magicast@0.5.3)(optionator@0.9.4)(rollup-plugin-visualizer@7.0.1(rollup@4.62.2))(rollup@4.62.2)(srvx@0.11.22)(terser@5.49.0)(typescript@6.0.3)(vite@7.3.6(@types/node@25.9.5)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))(yaml@2.9.0)
 
+  packages/catalog:
+    dependencies:
+      '@iconic/common':
+        specifier: workspace:*
+        version: link:../common
+      '@iconic/schema':
+        specifier: workspace:*
+        version: link:../schema
+
   packages/common: {}
 
   packages/core:
@@ -102,9 +114,15 @@ importers:
       '@iconic/schema':
         specifier: workspace:*
         version: link:../schema
+      '@iconic/utils':
+        specifier: workspace:*
+        version: link:../utils
 
   packages/iconic:
     dependencies:
+      '@iconic/catalog':
+        specifier: workspace:*
+        version: link:../catalog
       '@iconic/common':
         specifier: workspace:*
         version: link:../common

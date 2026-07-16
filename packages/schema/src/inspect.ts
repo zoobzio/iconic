@@ -1,4 +1,4 @@
-import type { Catalog, Domain, Inspect, Kind, Parse, Result } from "./types";
+import type { Contract, Domain, Inspect, Kind, Parse, Result } from "./types";
 
 import { SchemaError } from "./error";
 
@@ -7,7 +7,7 @@ import { SchemaError } from "./error";
  * {@link Result} — success with the narrowed value, or failure with the issues
  * — rather than throwing.
  */
-export const defineInspect = <C extends Catalog>(
+export const defineInspect = <C extends Contract>(
   parse: Parse<C>,
 ): Inspect<C> => {
   const inspect =
@@ -25,7 +25,8 @@ export const defineInspect = <C extends Catalog>(
   return {
     icon: inspect<"icon">(parse.icon),
     alias: inspect<"alias">(parse.alias),
+    overrides: inspect<"overrides">(parse.overrides),
     set: inspect<"set">(parse.set),
-    catalog: inspect<"catalog">(parse.catalog),
+    contract: inspect<"contract">(parse.contract),
   };
 };

@@ -1,18 +1,21 @@
 import { describe, expect, it } from "vitest";
 
 import { defineSchema } from "../src/schema";
-import type { IconifyIcon } from "../src/types";
+import type { Contract, IconifyIcon } from "../src/types";
 
 const home: IconifyIcon = { body: '<path d="M0 0"/>', width: 24, height: 24 };
 const star: IconifyIcon = { body: "<circle/>", width: 24, height: 24 };
 
-const schema = defineSchema({
-  base: { home, star },
-  sets: {},
-});
+const contract: Contract = {
+  id: "demo",
+  name: "Demo",
+  icons: { home, star },
+};
+
+const schema = defineSchema(contract);
 
 describe("defineSchema", () => {
-  it("reads the aliases off the catalog", () => {
+  it("reads the aliases off the contract", () => {
     expect([...schema.enums.aliases].sort()).toEqual(["home", "star"]);
   });
 
@@ -21,14 +24,9 @@ describe("defineSchema", () => {
     expect(schema.check.alias("nope")).toBe(false);
   });
 
-  it("accepts a well-formed icon literal", () => {
+  it("accepts a well-formed icon literal, rejects a bodyless one", () => {
     expect(schema.check.icon(home)).toBe(true);
-    expect(schema.check.icon({ body: "<path/>" })).toBe(true);
-  });
-
-  it("rejects an icon missing a string body", () => {
-    expect(schema.check.icon({ width: 24 })).toBe(false);
-    const result = schema.inspect.icon({ body: 42 });
+    const result = schema.inspect.icon({ width: 24 });
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.issues[0]?.code).toBe("not_icon");
@@ -36,47 +34,77 @@ describe("defineSchema", () => {
     }
   });
 
-  it("rejects an icon whose geometry is the wrong type", () => {
-    const result = schema.inspect.icon({ body: "<path/>", width: "24" });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.issues[0]?.path).toEqual(["width"]);
-    }
+  it("accepts an overrides map of known aliases", () => {
+    expect(schema.check.overrides({ home: star })).toBe(true);
   });
 
-  it("rejects an icon whose flip flag is not a boolean", () => {
-    expect(schema.check.icon({ body: "<path/>", hFlip: "yes" })).toBe(false);
-  });
-
-  it("asserts a set of known-alias overrides", () => {
-    expect(() => schema.assert.set({ home: star })).not.toThrow();
-  });
-
-  it("rejects a set overriding an unknown alias", () => {
-    const result = schema.inspect.set({ ghost: star });
+  it("rejects overrides on an unknown alias", () => {
+    const result = schema.inspect.overrides({ ghost: star });
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.issues[0]?.code).toBe("unknown_alias");
     }
   });
 
-  it("rejects a set whose override is a malformed icon", () => {
-    const result = schema.inspect.set({ home: { width: 24 } });
+  it("rejects overrides carrying a malformed icon", () => {
+    const result = schema.inspect.overrides({ home: { width: 24 } });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.issues[0]?.code).toBe("not_icon");
       expect(result.issues[0]?.path).toEqual(["home", "body"]);
     }
   });
 
-  it("throws when constructing from a malformed catalog", () => {
+  it("validates a set: identity plus optional known-alias overrides", () => {
+    expect(() =>
+      schema.assert.set({ id: "sharp", name: "Sharp", icons: { home: star } }),
+    ).not.toThrow();
+    expect(() => schema.assert.set({ id: "bare", name: "Bare" })).not.toThrow();
+  });
+
+  it("rejects a set missing its identity", () => {
+    const result = schema.inspect.set({ icons: { home: star } });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.issues[0]?.code).toBe("not_string");
+      expect(result.issues[0]?.path).toEqual(["id"]);
+    }
+  });
+
+  it("rejects a set whose tags are not strings", () => {
+    const result = schema.inspect.set({ id: "s", name: "S", tags: [1] });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.issues[0]?.path).toEqual(["tags", "0"]);
+    }
+  });
+
+  it("rejects a set overriding an unknown alias, pathed under icons", () => {
+    const result = schema.inspect.set({
+      id: "s",
+      name: "S",
+      icons: { ghost: star },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.issues[0]?.code).toBe("unknown_alias");
+      expect(result.issues[0]?.path).toEqual(["icons", "ghost"]);
+    }
+  });
+
+  it("throws when constructing from a contract missing identity", () => {
+    expect(() =>
+      // @ts-expect-error a contract requires an id
+      defineSchema({ name: "No id", icons: { home } }),
+    ).toThrow();
+  });
+
+  it("throws when constructing from a contract with a malformed icon", () => {
     expect(() =>
       defineSchema({
-        base: {
-          // @ts-expect-error an icon literal must carry a string body
-          home: { width: 24 },
-        },
-        sets: {},
+        id: "bad",
+        name: "Bad",
+        // @ts-expect-error an icon literal must carry a string body
+        icons: { home: { width: 24 } },
       }),
     ).toThrow();
   });
