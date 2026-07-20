@@ -28,3 +28,10 @@ export const SETS = "sets.json";
  * body server-side, kept in sync client-side.
  */
 export const CONTAINER = "iconic-sprite";
+
+/**
+ * The asset key of the prebuilt base sprite markup: the server plugin reads it
+ * and inlines it into the body. Built at module setup — the server runtime cannot
+ * import the app's `#build` contract, so the markup is handed over as an asset.
+ */
+export const SPRITE = "sprite.html";

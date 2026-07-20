@@ -1,20 +1,19 @@
-import { defineNitroPlugin } from "#imports";
-import { makeIconic } from "iconic";
-import { defineSprite } from "iconic/svg";
-import { contract } from "#build/iconic.mjs";
+import { defineNitroPlugin, useStorage } from "#imports";
 
-import { CONTAINER } from "@iconic/nuxt/constant";
+import { ASSETS, SPRITE } from "@iconic/nuxt/constant";
 
-/*
- * The base contract's sprite, built once per server process. Inlining it into
- * the body means icons paint on first load without waiting for hydration; the
- * client plugin takes the same container over and keeps it in sync as sets apply.
+/**
+ * Inlines the prebuilt base sprite into the body so icons paint on first load
+ * without waiting for hydration; the client plugin takes the same container over
+ * and keeps it in sync as sets apply. The markup is read from the server asset
+ * the module wrote at build time — the server runtime cannot import the app's
+ * `#build` contract directly.
  */
-const sprite = defineSprite(makeIconic({ contract, override: {} }));
-const markup = `<div id="${CONTAINER}">${sprite.sheet()}</div>`;
-
 export default defineNitroPlugin((nitroApp) => {
-  nitroApp.hooks.hook("render:html", (html) => {
-    html.bodyPrepend.push(markup);
+  nitroApp.hooks.hook("render:html", async (html) => {
+    const markup = await useStorage(`assets:${ASSETS}`).getItem(SPRITE);
+    if (typeof markup === "string") {
+      html.bodyPrepend.push(markup);
+    }
   });
 });

@@ -1,0 +1,23 @@
+{
+  "name": "@iconic/example-nuxt",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxi dev",
+    "build": "nuxi build",
+    "generate": "nuxi generate",
+    "preview": "nuxi preview"
+  },
+  "dependencies": {
+    "@iconic/nuxt": "workspace:*",
+    "iconic": "workspace:*",
+    "nuxt": "^4.4.6",
+    "vue": "^3.5.35"
+  },
+  "devDependencies": {
+    "@iconify-json/lucide": "^1",
+    "@iconify-json/mdi": "^1",
+    "@iconify-json/ph": "^1",
+    "@iconify-json/tabler": "^1"
+  }
+}

@@ -17,7 +17,7 @@ interface NitroApp {
   hooks: {
     hook: (
       name: "render:html",
-      handler: (html: NitroRenderHtml) => void,
+      handler: (html: NitroRenderHtml) => void | Promise<void>,
     ) => void;
   };
 }

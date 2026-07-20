@@ -5,8 +5,9 @@ import type { NuxtIconicConfig } from "./config";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { defineSchema } from "iconic";
+import { defineSchema, makeIconic } from "iconic";
 import { ROUTE } from "iconic/catalog";
+import { defineSprite } from "iconic/svg";
 import { resolveContract, resolveSet } from "@iconic/iconify";
 
 import {
@@ -21,7 +22,7 @@ import {
   createResolver,
 } from "@nuxt/kit";
 
-import { ASSETS, ENTRIES, MOUNT, SETS } from "./constant";
+import { ASSETS, CONTAINER, ENTRIES, MOUNT, SETS, SPRITE } from "./constant";
 
 /**
  * Nuxt module for iconic.
@@ -85,6 +86,14 @@ export default defineNuxtModule<NuxtIconicConfig>({
     });
 
     /*
+     * The base contract's sprite, rendered here where the contract is in hand.
+     * The server runtime cannot import the app's `#build` contract, so the markup
+     * is written as an asset the nitro plugin reads and inlines.
+     */
+    const sprite = defineSprite(makeIconic({ contract, override: {} }));
+    const markup = `<div id="${CONTAINER}">${sprite.sheet()}</div>`;
+
+    /*
      * Set payloads stay off the app bundle: plain JSON files in the build
      * directory, mounted as nitro server assets. The write waits for
      * `build:before`, which fires after nuxt has cleared the build directory; a
@@ -96,6 +105,7 @@ export default defineNuxtModule<NuxtIconicConfig>({
       await mkdir(assets, { recursive: true });
       await writeFile(join(assets, ENTRIES), JSON.stringify(entries));
       await writeFile(join(assets, SETS), JSON.stringify(catalog));
+      await writeFile(join(assets, SPRITE), markup);
     });
 
     nuxt.options.nitro.serverAssets ||= [];

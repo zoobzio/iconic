@@ -121,6 +121,10 @@ describe("iconic module", () => {
 
     const payloads = JSON.parse(await readFile(join(dir, "sets.json"), "utf8"));
     expect(Object.keys(payloads)).toEqual(["sharp", "round"]);
+
+    const markup = await readFile(join(dir, "sprite.html"), "utf8");
+    expect(markup).toContain('id="iconic-sprite"');
+    expect(markup).toContain('<symbol id="home"');
   });
 
   it("writes an empty catalog when no sets are configured", async () => {

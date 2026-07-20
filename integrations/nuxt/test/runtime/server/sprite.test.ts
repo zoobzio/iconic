@@ -1,17 +1,20 @@
-import { describe, it, expect, vi } from "vitest";
-import { contract } from "../../fixtures";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("#build/iconic.mjs", () => ({ contract }));
+let assets: Record<string, unknown>;
 
 vi.mock("#imports", () => ({
   defineNitroPlugin: (plugin: unknown) => plugin,
+  useStorage: () => ({
+    getItem: (key: string) => Promise.resolve(assets[key] ?? null),
+  }),
 }));
 
 import plugin from "../../../src/runtime/server/sprite";
 
 /** Runs the plugin and returns the HTML the `render:html` hook prepended. */
-const render = (): string => {
-  let handler: ((html: { bodyPrepend: string[] }) => void) | undefined;
+const render = async (): Promise<string> => {
+  let handler:
+    ((html: { bodyPrepend: string[] }) => void | Promise<void>) | undefined;
   const nitroApp = {
     hooks: {
       hook: (_name: string, fn: typeof handler) => {
@@ -22,15 +25,22 @@ const render = (): string => {
   (plugin as unknown as (app: typeof nitroApp) => void)(nitroApp);
   if (!handler) throw new Error("plugin did not register render:html");
   const html = { bodyPrepend: [] as string[] };
-  handler(html);
+  await handler(html);
   return html.bodyPrepend.join("");
 };
 
 describe("sprite server plugin", () => {
-  it("inlines the base sprite into the sprite container", () => {
-    const markup = render();
-    expect(markup).toContain('id="iconic-sprite"');
-    expect(markup).toContain('<symbol id="home"');
-    expect(markup).toContain('<symbol id="save"');
+  beforeEach(() => {
+    assets = { "sprite.html": '<div id="iconic-sprite"><svg></svg></div>' };
+  });
+
+  it("inlines the prebuilt sprite markup from the server asset", async () => {
+    const markup = await render();
+    expect(markup).toBe('<div id="iconic-sprite"><svg></svg></div>');
+  });
+
+  it("prepends nothing when the asset is missing", async () => {
+    assets = {};
+    expect(await render()).toBe("");
   });
 });
