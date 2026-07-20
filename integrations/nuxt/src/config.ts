@@ -1,0 +1,59 @@
+import type { Identity } from "iconic";
+
+/**
+ * An alias map authored as icon *refs* — `home: "lucide:home"`, or
+ * `home: "$/host/path"` — the build-layer input `@iconic/iconify` resolves into
+ * icon literals.
+ */
+export type RefIcons = Record<string, string>;
+
+/**
+ * A switchable set authored as refs: identity plus a partial ref map rebinding a
+ * subset of the contract's aliases. The module resolves and serves these over
+ * the catalog wire protocol.
+ */
+export type RefSet = Identity & { icons: RefIcons };
+
+/**
+ * The module's configuration. Icons are authored as refs; the module resolves
+ * them against the Iconify collections at build time and emits the flat contract
+ * the runtime carries. `id` / `name` default when omitted.
+ */
+export interface NuxtIconicConfig {
+  /** The contract's identity id. Defaults to `"app"`. */
+  id?: string;
+
+  /** The contract's display name. Defaults to `"App Icons"`. */
+  name?: string;
+
+  /** Each semantic alias mapped to its icon ref. */
+  icons: RefIcons;
+
+  /**
+   * The set catalog: switchable layers the app's server serves over the catalog
+   * wire protocol. Keys are authoring convenience only — each set's own `id` is
+   * the identity it is listed and retrieved under. Payloads are never bundled
+   * with the app: the module loads them into nitro's server assets.
+   */
+  sets?: Record<string, RefSet>;
+}
+
+/**
+ * Identity helper that types a Nuxt iconic configuration.
+ *
+ * @param config - The Nuxt iconic configuration.
+ * @returns The same config.
+ */
+export const defineNuxtIconicConfig = (
+  config: NuxtIconicConfig,
+): NuxtIconicConfig => config;
+
+declare module "@nuxt/schema" {
+  interface NuxtConfig {
+    iconic?: NuxtIconicConfig;
+  }
+
+  interface NuxtOptions {
+    iconic?: NuxtIconicConfig;
+  }
+}

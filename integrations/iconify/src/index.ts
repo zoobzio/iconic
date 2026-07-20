@@ -1,4 +1,4 @@
-export { generate, generateSet } from "./generate";
+export { generate, generateSet, resolveContract, resolveSet } from "./generate";
 export type {
   GenerateOptions,
   GenerateResult,

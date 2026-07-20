@@ -5,7 +5,15 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["node", "@nuxt/nitro-server"],
+    "paths": {
+      "@iconic/nuxt/constant": ["./src/constant.ts"],
+      "#app": ["./src/stubs/app.d.ts"],
+      "#imports": ["./src/stubs/imports.d.ts"],
+      "#build/iconic.mjs": ["./src/stubs/build/iconic.d.mts"],
+      "#build/types/iconic.d.ts": ["./src/stubs/build/types/iconic.d.ts"]
+    }
   },
   "include": ["src", "test"]
 }

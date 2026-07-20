@@ -60,17 +60,17 @@ const resolversFor = (
 });
 
 /**
- * The programmatic entry point for a contract: parses the ref config, acquires
- * the Iconify collections (batched, local-first with API fallback), resolves
- * every ref into an icon literal, validates the assembled contract through
- * iconic's own schema, and returns the emitted `iconic.config.ts`. No filesystem
- * writes — the caller owns I/O both directions.
+ * Resolves a ref config into a validated {@link Contract}: parses the refs,
+ * acquires the Iconify collections (batched, local-first with API fallback),
+ * resolves each ref into an icon literal, and validates the assembled contract
+ * through iconic's own schema. The object an in-memory consumer (a framework
+ * module) wants, before serialization.
  *
  * @param options - The ref config plus I/O and resolver hooks.
  */
-export const generate = async (
+export const resolveContract = async (
   options: GenerateOptions,
-): Promise<GenerateResult> => {
+): Promise<Contract> => {
   const cwd = options.cwd ?? process.cwd();
   const req = options.req ?? request;
 
@@ -85,24 +85,34 @@ export const generate = async (
   const icons = await assemble(entries, resolvers);
   const contract: Contract = { ...identity, icons };
   reframe(entries, () => defineSchema(contract));
+  return contract;
+};
 
+/**
+ * The programmatic entry point for a contract: resolves the ref config and
+ * returns the emitted `iconic.config.ts`. No filesystem writes — the caller owns
+ * I/O both directions.
+ *
+ * @param options - The ref config plus I/O and resolver hooks.
+ */
+export const generate = async (
+  options: GenerateOptions,
+): Promise<GenerateResult> => {
+  const contract = await resolveContract(options);
   const contents = emit(contract, "the ref config");
   return { filename: options.filename ?? FILENAME, contents };
 };
 
 /**
- * The programmatic entry point for a set: resolves a ref map into a Set document
- * — the catalog payload an `apply` consumes. Every ref key is membership-checked
- * against the contract's `aliases` before resolution (a set may only rebind
- * known aliases), the refs resolve through the same acquire/resolve pipeline,
- * and the assembled set is validated through iconic's own schema. Emits the Set
- * as JSON; defaults the filename to `<id>.set.json`.
+ * Resolves a ref map into a validated {@link Set} document — the catalog payload
+ * an `apply` consumes. Every ref key is membership-checked against the contract's
+ * `aliases` first (a set may only rebind known aliases), the refs resolve through
+ * the same acquire/resolve pipeline, and the assembled set is validated through
+ * iconic's own schema.
  *
  * @param options - The set identity, the contract aliases, the ref map, and hooks.
  */
-export const generateSet = async (
-  options: GenerateSetOptions,
-): Promise<GenerateResult> => {
+export const resolveSet = async (options: GenerateSetOptions): Promise<Set> => {
   const cwd = options.cwd ?? process.cwd();
   const req = options.req ?? request;
 
@@ -128,7 +138,19 @@ export const generateSet = async (
   // A set carrying icons is contract-shaped, so the contract kind validates its
   // identity and every resolved icon in one pass.
   reframe(entries, () => defineSchema({ ...options.identity, icons }));
+  return set;
+};
 
+/**
+ * The programmatic entry point for a set: resolves the ref map and emits the Set
+ * as JSON. Defaults the filename to `<id>.set.json`.
+ *
+ * @param options - The set identity, the contract aliases, the ref map, and hooks.
+ */
+export const generateSet = async (
+  options: GenerateSetOptions,
+): Promise<GenerateResult> => {
+  const set = await resolveSet(options);
   const contents = `${JSON.stringify(set, null, 2)}\n`;
   const filename = options.filename ?? `${options.identity.id}.set.json`;
   return { filename, contents };

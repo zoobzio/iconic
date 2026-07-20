@@ -1,7 +1,14 @@
-// iconic Nuxt runtime composable — scaffold.
-//
-// Once implemented `useIcon` resolves an icon name against the generated sprite
-// and returns the metadata a component needs to render a <use> reference.
-export const useIcon = () => {
-  throw new Error("iconic: useIcon is not implemented yet (scaffold).");
+import type { AppIconic } from "./types";
+
+import { useNuxtApp } from "#app";
+
+/**
+ * Composable for the icon service: the active contract, the applied set, and the
+ * user override layer. Every read and write flows through the reactive container
+ * the plugin built, so a component that resolves an alias re-renders when the set
+ * or an override changes.
+ */
+export const useIconic = (): AppIconic => {
+  const { $iconic } = useNuxtApp();
+  return $iconic;
 };
