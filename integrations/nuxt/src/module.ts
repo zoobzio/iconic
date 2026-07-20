@@ -9,6 +9,7 @@ import { defineSchema, makeIconic } from "iconic";
 import { ROUTE } from "iconic/catalog";
 import { defineSprite } from "iconic/svg";
 import { resolveContract, resolveSet } from "@iconic/iconify";
+import type { Req } from "@iconic/iconify";
 
 import {
   defineNuxtModule,
@@ -22,7 +23,15 @@ import {
   createResolver,
 } from "@nuxt/kit";
 
-import { ASSETS, CONTAINER, ENTRIES, MOUNT, SETS, SPRITE } from "./constant";
+import {
+  ASSETS,
+  CONTAINER,
+  ENTRIES,
+  MOUNT,
+  SETS,
+  SPRITE,
+  TOKEN_ENV,
+} from "./constant";
 
 /**
  * Nuxt module for iconic.
@@ -49,7 +58,32 @@ export default defineNuxtModule<NuxtIconicConfig>({
       );
     }
 
+    /*
+     * The remote catalog's auth, resolved for the build phase: the bearer token
+     * from the shared env var (the same one `runtimeConfig` reads at runtime),
+     * merged with any static headers. Attached to every resolution fetch so refs
+     * from a private source resolve; absent when neither is set, so resolution
+     * falls back to the plain default loader.
+     */
+    const token = process.env[TOKEN_ENV];
+    const extra = options.catalog?.headers;
+    const headers: Record<string, string> | undefined = token
+      ? { ...extra, authorization: `Bearer ${token}` }
+      : extra;
+    const req: Req | undefined = headers
+      ? async (src) => {
+          const response = await fetch(src, { headers });
+          if (!response.ok) {
+            throw new Error(
+              `iconic: fetching ${src.href} failed with ${response.status} ${response.statusText}`,
+            );
+          }
+          return response.text();
+        }
+      : undefined;
+
     const contract = await resolveContract({
+      req,
       config: {
         id: options.id ?? "app",
         name: options.name ?? "App Icons",
@@ -68,7 +102,7 @@ export default defineNuxtModule<NuxtIconicConfig>({
     const catalog: Record<string, Set> = {};
     for (const ref of Object.values(options.sets ?? {})) {
       const { icons, ...identity } = ref;
-      const set = await resolveSet({ identity, aliases, icons });
+      const set = await resolveSet({ req, identity, aliases, icons });
       schema.assert.set(set);
       if (set.id in catalog) {
         throw new Error(
@@ -110,6 +144,19 @@ export default defineNuxtModule<NuxtIconicConfig>({
 
     nuxt.options.nitro.serverAssets ||= [];
     nuxt.options.nitro.serverAssets.push({ baseName: ASSETS, dir: assets });
+
+    /*
+     * The remote catalog, exposed to the server routes through runtimeConfig so
+     * the base and headers are env-overridable and the token stays server-side.
+     * `token` defaults empty and is filled at runtime by `${TOKEN_ENV}` — the
+     * same variable read from `process.env` above — so one env var serves both
+     * the build-time resolution and the runtime set loading.
+     */
+    nuxt.options.runtimeConfig.iconic = {
+      base: options.catalog?.base ?? "",
+      headers: options.catalog?.headers ?? {},
+      token: "",
+    };
 
     addServerHandler({
       route: `${MOUNT}/${ROUTE}`,

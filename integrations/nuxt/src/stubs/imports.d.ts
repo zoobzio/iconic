@@ -3,6 +3,10 @@ import type { Ref } from "vue";
 
 export declare function useState<T>(key: string, init: () => T): Ref<T>;
 
+export declare function useRuntimeConfig(): {
+  iconic?: { base?: string; headers?: Record<string, string>; token?: string };
+};
+
 // Nitro's storage surface, as far as the server routes reach into it. The read
 // stays `unknown` so handlers prove what storage hands back.
 export declare function useStorage(base?: string): {

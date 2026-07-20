@@ -1,11 +1,12 @@
-import type { Entry, Listing, Page } from "iconic/catalog";
+import type { Entry, Listing } from "iconic/catalog";
 
 import { createError, defineEventHandler, getQuery } from "h3";
-import { isQuery, LIMIT, SORT } from "iconic/catalog";
+import { isQuery, LIMIT, ROUTE, SORT } from "iconic/catalog";
 import { isRecord } from "iconic/common";
-import { useStorage } from "#imports";
+import { useRuntimeConfig, useStorage } from "#imports";
 
 import { ASSETS, ENTRIES } from "@iconic/nuxt/constant";
+import { remoteHeaders } from "./remote";
 
 /**
  * Whether a stored value carries the entry shape the module's manifest was
@@ -27,8 +28,26 @@ const isEntry = (value: unknown): value is Entry => {
  * normalized to a concrete listing before the manifest is filtered, ordered, and
  * cut. The manifest comes from the server assets the module wrote at build time.
  */
-export default defineEventHandler(async (event): Promise<Page> => {
+export default defineEventHandler(async (event) => {
   const { q } = getQuery(event);
+
+  /*
+   * A remote catalog is configured: proxy the listing to it, adding the
+   * server-side auth. The browser never sees the token.
+   */
+  const remote = useRuntimeConfig().iconic;
+  if (remote?.base) {
+    const query = typeof q === "string" ? `?q=${encodeURIComponent(q)}` : "";
+    const url = `${remote.base.replace(/\/+$/, "")}/${ROUTE}${query}`;
+    const response = await fetch(url, { headers: remoteHeaders(remote) });
+    if (!response.ok) {
+      throw createError({
+        statusCode: 502,
+        statusMessage: "Upstream catalog failed",
+      });
+    }
+    return await response.json();
+  }
 
   let value: unknown = {};
   if (typeof q === "string") {

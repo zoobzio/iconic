@@ -1,8 +1,10 @@
 import { createError, defineEventHandler, getRouterParam } from "h3";
+import { ROUTE } from "iconic/catalog";
 import { isRecord } from "iconic/common";
-import { useStorage } from "#imports";
+import { useRuntimeConfig, useStorage } from "#imports";
 
 import { ASSETS, SETS } from "@iconic/nuxt/constant";
+import { remoteHeaders } from "./remote";
 
 /**
  * The catalog's retrieval route: answers with the stored set for the id, or 404
@@ -16,6 +18,26 @@ export default defineEventHandler(async (event) => {
       statusCode: 400,
       statusMessage: "Set id required",
     });
+  }
+
+  /*
+   * A remote catalog is configured: proxy the retrieval to it, adding the
+   * server-side auth. A 404 stays a miss; the browser never sees the token.
+   */
+  const remote = useRuntimeConfig().iconic;
+  if (remote?.base) {
+    const url = `${remote.base.replace(/\/+$/, "")}/${ROUTE}/${encodeURIComponent(id)}`;
+    const response = await fetch(url, { headers: remoteHeaders(remote) });
+    if (response.status === 404) {
+      throw createError({ statusCode: 404, statusMessage: "Set not found" });
+    }
+    if (!response.ok) {
+      throw createError({
+        statusCode: 502,
+        statusMessage: "Upstream catalog failed",
+      });
+    }
+    return await response.json();
   }
 
   const stored = await useStorage(`assets:${ASSETS}`).getItem(SETS);

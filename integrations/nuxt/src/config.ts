@@ -36,6 +36,26 @@ export interface NuxtIconicConfig {
    * with the app: the module loads them into nitro's server assets.
    */
   sets?: Record<string, RefSet>;
+
+  /**
+   * A remote catalog the app draws sets from instead of (or alongside) the
+   * build-emitted `sets`. When `base` is set, the server routes proxy to it —
+   * the browser only ever talks to the app's own origin, so the token never
+   * reaches the client.
+   *
+   * Auth is a single env var, `NUXT_ICONIC_TOKEN`, sent as a bearer token. The
+   * same variable is read from `process.env` at build (to resolve refs from a
+   * private icon source) and from `runtimeConfig` at runtime (to load sets) — so
+   * the consumer sets one env var and it works for both. `headers` carries any
+   * additional non-secret headers.
+   */
+  catalog?: {
+    /** The remote catalog's origin — the `base` a client's wire routes extend. */
+    base: string;
+
+    /** Additional non-secret headers sent with every catalog request. */
+    headers?: Record<string, string>;
+  };
 }
 
 /**

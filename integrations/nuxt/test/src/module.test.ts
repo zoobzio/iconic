@@ -36,12 +36,14 @@ vi.mock("@iconic/iconify", () => ({
   ),
 }));
 
+import { resolveContract, resolveSet } from "@iconic/iconify";
 import module from "../../src/module";
 
 interface FakeNuxt {
   options: {
     buildDir: string;
     nitro: { serverAssets?: { baseName: string; dir: string }[] };
+    runtimeConfig: Record<string, unknown>;
   };
   hook: ReturnType<typeof vi.fn>;
 }
@@ -76,6 +78,7 @@ describe("iconic module", () => {
       options: {
         buildDir: await mkdtemp(join(tmpdir(), "iconic-module-")),
         nitro: {},
+        runtimeConfig: {},
       },
       hook: vi.fn(),
     };
@@ -201,5 +204,43 @@ describe("iconic module", () => {
       (entry: { name: string }) => entry.name,
     );
     expect(names).toContain("useIconic");
+  });
+
+  it("threads a bearer request loader to the resolvers only when the token env is set", async () => {
+    await mod.setup(options, nuxt);
+    expect(vi.mocked(resolveContract).mock.calls[0][0].req).toBeUndefined();
+    expect(vi.mocked(resolveSet).mock.calls[0][0].req).toBeUndefined();
+
+    vi.clearAllMocks();
+    process.env.NUXT_ICONIC_TOKEN = "secret";
+    try {
+      await mod.setup(options, nuxt);
+      expect(typeof vi.mocked(resolveContract).mock.calls[0][0].req).toBe(
+        "function",
+      );
+      expect(typeof vi.mocked(resolveSet).mock.calls[0][0].req).toBe(
+        "function",
+      );
+    } finally {
+      delete process.env.NUXT_ICONIC_TOKEN;
+    }
+  });
+
+  it("registers the remote catalog on runtimeConfig with an empty token default", async () => {
+    await mod.setup(
+      {
+        ...options,
+        catalog: {
+          base: "https://vendor.test",
+          headers: { "x-tenant": "acme" },
+        },
+      },
+      nuxt,
+    );
+    expect(nuxt.options.runtimeConfig.iconic).toEqual({
+      base: "https://vendor.test",
+      headers: { "x-tenant": "acme" },
+      token: "",
+    });
   });
 });

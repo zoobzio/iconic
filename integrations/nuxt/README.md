@@ -9,7 +9,9 @@ catalog served over the wire protocol.
 ## Usage
 
 Author icons as refs — the module resolves them with
-[`@iconic/iconify`](../iconify) at build time:
+[`@iconic/iconify`](../iconify) at build time. Refs draw from local
+`@iconify-json/*` packages first, then the public Iconify API; a
+`$/host/path` ref fetches a single icon from a URL:
 
 ```ts
 // nuxt.config.ts
@@ -50,6 +52,32 @@ Sets are discovered and retrieved through the catalog the module mounts at
 `/api/iconic/sets`; `apply` swaps the active document and the sprite re-renders in
 place (the `<use href="#alias">` never changes). A selection does not yet persist
 across reloads — that lands with SSR-safe restoration later.
+
+## Remote catalog & auth
+
+Point the catalog at a remote vendor instead of (or alongside) build-emitted
+`sets`; the server routes proxy to it, so the token stays server-side and the
+browser only ever talks to the app's own origin:
+
+```ts
+iconic: {
+  icons: { home: "acme:home" },
+  catalog: {
+    base: "https://icons.acme.com",     // remote origin (non-secret)
+    headers: { "x-tenant": "acme" },     // optional static headers
+  },
+}
+```
+
+Auth is a **single env var**, `NUXT_ICONIC_TOKEN`, sent as a bearer token. It is
+read from `process.env` at build (to resolve refs from a private source) and from
+`runtimeConfig` at runtime (to load sets) — so one variable covers both phases and
+no secret lives in `nuxt.config` or the bundle:
+
+```sh
+# .env
+NUXT_ICONIC_TOKEN=sk_live_…
+```
 
 ## How it works
 

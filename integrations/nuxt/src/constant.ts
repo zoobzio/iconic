@@ -35,3 +35,11 @@ export const CONTAINER = "iconic-sprite";
  * import the app's `#build` contract, so the markup is handed over as an asset.
  */
 export const SPRITE = "sprite.html";
+
+/**
+ * The single env var carrying the remote catalog's bearer token. Read from
+ * `process.env` at build (to auth ref resolution against a private source) and,
+ * as the override for `runtimeConfig.iconic.token`, at runtime (to auth set
+ * loading) — so one variable serves both phases.
+ */
+export const TOKEN_ENV = "NUXT_ICONIC_TOKEN";
