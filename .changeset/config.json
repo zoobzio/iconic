@@ -12,7 +12,6 @@
       "@iconic/schema",
       "@iconic/utils",
       "@iconic/svg",
-      "@iconic/kit",
       "@iconic/nuxt"
     ]
   ],

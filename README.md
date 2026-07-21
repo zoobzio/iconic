@@ -107,8 +107,6 @@ sprite.href("home"); // "#home" — constant
 sprite.sheet(); // the full <svg> sprite
 ```
 
-Reusable icon packs are authored with the kit (`iconic/kit`).
-
 ## From Iconify JSON
 
 iconic draws from the Iconify JSON format directly, so any of the
@@ -123,12 +121,11 @@ fallback, and can also fetch a single icon from a URL.
 | -------------------------------- | ----------------------------------------------------------------------------------------- |
 | [`packages`](./packages)         | The library: the public [`iconic`](./packages/iconic) package and the internals behind it |
 | [`integrations`](./integrations) | Build and framework bridges — the `@iconic/iconify` generator and the Nuxt module         |
-| `presets`                        | Reusable curated icon packs (none yet — the bucket is reserved)                            |
 | `examples`                       | Consuming apps demonstrating the pipeline (none yet — the bucket is reserved)              |
 
 The internal packages: `@iconic/schema` (validation), `@iconic/core` (runtime
 service), `@iconic/catalog` (set discovery/retrieval), `@iconic/svg` (sprite),
-`@iconic/kit` (authoring), `@iconic/utils` and `@iconic/common` (helpers).
+`@iconic/utils` and `@iconic/common` (helpers).
 
 ## Development
 

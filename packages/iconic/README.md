@@ -8,7 +8,6 @@ this one package rather than the internal `@iconic/*` set.
 | --------------- | ------------------------------------------ |
 | `iconic`        | The icon engine — `defineIconic`           |
 | `iconic/svg`    | The SVG sprite renderer — `defineSprite`   |
-| `iconic/kit`    | The collection-authoring toolkit           |
 | `iconic/config` | Config types and the `defineConfig` helper |
 | `iconic/common` | Shared guards and object helpers           |
 

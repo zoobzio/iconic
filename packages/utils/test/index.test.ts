@@ -4,7 +4,6 @@ import type { Contract, IconifyIcon, Set } from "@iconic/schema";
 
 import { clone } from "../src/clone";
 import { copy } from "../src/copy";
-import { extend } from "../src/extend";
 import { merge } from "../src/merge";
 
 const a: IconifyIcon = { body: "x", width: 24 };
@@ -35,14 +34,6 @@ describe("clone", () => {
     expect(out.tags).not.toBe(contract.tags);
     expect(out.icons.home).toEqual(a);
     expect(out.icons.home).not.toBe(a);
-  });
-});
-
-describe("extend", () => {
-  it("accumulates icons from the extension, keeping identity", () => {
-    const out = extend(contract, { icons: { save: b } });
-    expect(Object.keys(out.icons).sort()).toEqual(["home", "save", "star"]);
-    expect(out.id).toBe("demo");
   });
 });
 

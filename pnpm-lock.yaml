@@ -166,27 +166,12 @@ importers:
       '@iconic/core':
         specifier: workspace:*
         version: link:../core
-      '@iconic/kit':
-        specifier: workspace:*
-        version: link:../kit
       '@iconic/schema':
         specifier: workspace:*
         version: link:../schema
       '@iconic/svg':
         specifier: workspace:*
         version: link:../svg
-      '@iconic/utils':
-        specifier: workspace:*
-        version: link:../utils
-
-  packages/kit:
-    dependencies:
-      '@iconic/core':
-        specifier: workspace:*
-        version: link:../core
-      '@iconic/schema':
-        specifier: workspace:*
-        version: link:../schema
       '@iconic/utils':
         specifier: workspace:*
         version: link:../utils

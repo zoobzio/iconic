@@ -1,5 +1,5 @@
 {
-  "name": "@iconic/iconic",
+  "name": "iconic",
   "version": "0.1.0",
   "type": "module",
   "main": "./.dist/index.mjs",
@@ -24,10 +24,6 @@
     "./svg": {
       "types": "./.dist/svg.d.ts",
       "import": "./.dist/svg.mjs"
-    },
-    "./kit": {
-      "types": "./.dist/kit.d.ts",
-      "import": "./.dist/kit.mjs"
     }
   },
   "files": [
@@ -44,7 +40,6 @@
     "@iconic/catalog": "workspace:*",
     "@iconic/common": "workspace:*",
     "@iconic/core": "workspace:*",
-    "@iconic/kit": "workspace:*",
     "@iconic/schema": "workspace:*",
     "@iconic/svg": "workspace:*",
     "@iconic/utils": "workspace:*"
