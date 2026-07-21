@@ -1,13 +1,13 @@
-import type { Contract, Schema, Set } from "iconic";
-import type { Entry } from "iconic/catalog";
+import type { Contract, Schema, Set } from "@iconic/iconic";
+import type { Entry } from "@iconic/iconic/catalog";
 import type { NuxtIconicConfig } from "./config";
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { defineSchema, makeIconic } from "iconic";
-import { ROUTE } from "iconic/catalog";
-import { defineSprite } from "iconic/svg";
+import { defineSchema, makeIconic } from "@iconic/iconic";
+import { ROUTE } from "@iconic/iconic/catalog";
+import { defineSprite } from "@iconic/iconic/svg";
 import { resolveContract, resolveSet } from "@iconic/iconify";
 import type { Req } from "@iconic/iconify";
 
@@ -178,7 +178,7 @@ export default defineNuxtModule<NuxtIconicConfig>({
           .map((alias) => JSON.stringify(alias))
           .join(" | ");
         return [
-          `import type { IconifyIcon } from "iconic";`,
+          `import type { IconifyIcon } from "@iconic/iconic";`,
           `export type Alias = ${union || "never"};`,
           `export type Overrides = Partial<Record<Alias, IconifyIcon>>;`,
         ].join("\n");
@@ -196,7 +196,7 @@ export default defineNuxtModule<NuxtIconicConfig>({
       write: true,
       getContents: () =>
         [
-          `import type { Identity, IconifyIcon } from "iconic";`,
+          `import type { Identity, IconifyIcon } from "@iconic/iconic";`,
           `import type { Alias } from "./types/iconic";`,
           `export const contract: Identity & { icons: Record<Alias, IconifyIcon> };`,
         ].join("\n"),

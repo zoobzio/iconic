@@ -1,8 +1,8 @@
-import type { Entry, Listing } from "iconic/catalog";
+import type { Entry, Listing } from "@iconic/iconic/catalog";
 
 import { createError, defineEventHandler, getQuery } from "h3";
-import { isQuery, LIMIT, ROUTE, SORT } from "iconic/catalog";
-import { isRecord } from "iconic/common";
+import { isQuery, LIMIT, ROUTE, SORT } from "@iconic/iconic/catalog";
+import { isRecord } from "@iconic/iconic/common";
 import { useRuntimeConfig, useStorage } from "#imports";
 
 import { ASSETS, ENTRIES } from "@iconic/nuxt/constant";

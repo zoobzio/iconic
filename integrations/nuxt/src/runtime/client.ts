@@ -1,6 +1,6 @@
 import type { AppIconic } from "./types";
 
-import { makeIconic as makeService } from "iconic";
+import { makeIconic as makeService } from "@iconic/iconic";
 import { accessIconic } from "./store";
 
 /**

@@ -29,6 +29,6 @@
   "devDependencies": {
     "@iconic/catalog": "workspace:*",
     "@types/node": "^25.9.1",
-    "iconic": "workspace:*"
+    "@iconic/iconic": "workspace:*"
   }
 }

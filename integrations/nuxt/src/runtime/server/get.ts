@@ -1,6 +1,6 @@
 import { createError, defineEventHandler, getRouterParam } from "h3";
-import { ROUTE } from "iconic/catalog";
-import { isRecord } from "iconic/common";
+import { ROUTE } from "@iconic/iconic/catalog";
+import { isRecord } from "@iconic/iconic/common";
 import { useRuntimeConfig, useStorage } from "#imports";
 
 import { ASSETS, SETS } from "@iconic/nuxt/constant";

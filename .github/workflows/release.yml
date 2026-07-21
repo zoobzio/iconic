@@ -1,8 +1,12 @@
 name: Release
 
 # Trunk-based, no schedule: work merges to main continuously, and changesets
-# keeps an open "Release" PR that accumulates the pending version bump. Merging
-# that PR publishes. workflow_dispatch is the ad-hoc "Run workflow" button.
+# keeps an open "Release" PR that accumulates the pending version bump.
+# Publishing is currently PAUSED — the action only opens/updates the Release PR
+# and never publishes (the packages are pre-1.0 and unpublished, and the
+# `@iconic` npm scope is not yet set up). To go live, restore the `publish:`
+# input on the step below and bootstrap the first publish (see step note).
+# workflow_dispatch is the ad-hoc "Run workflow" button.
 on:
   push:
     branches: [main]
@@ -40,15 +44,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      # Two modes: pending changesets -> open/update the Release PR via
-      # ci:version; none pending (the PR just merged) -> ci:release builds and
-      # publishes. Auth is tokenless OIDC — no NPM_TOKEN. Provenance is emitted
-      # automatically under trusted publishing.
-      - name: Create Release PR or publish
+      # Publishing paused: with only `version:` set, the action opens/updates the
+      # Release PR from pending changesets and never publishes. To enable
+      # publishing, restore `publish: pnpm ci:release` below. NOTE: the first
+      # publish cannot run under OIDC trusted publishing (it can't create a
+      # brand-new package) — bootstrap each `@iconic/*` package once with an
+      # npm token, then configure a trusted publisher per package.
+      - name: Create or update Release PR
         uses: changesets/action@v1
         with:
           version: pnpm ci:version
-          publish: pnpm ci:release
+          # publish: pnpm ci:release
           commit: "chore: release"
           title: "chore: release"
         env:

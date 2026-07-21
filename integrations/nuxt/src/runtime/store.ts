@@ -1,6 +1,6 @@
 import type { AppConfig } from "./types";
 
-import { useIconicConfig } from "iconic/config";
+import { useIconicConfig } from "@iconic/iconic/config";
 import { useState } from "#imports";
 import { contract } from "#build/iconic.mjs";
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { Page } from "iconic/catalog";
-import { defineClient } from "iconic/catalog";
+import type { Page } from "@iconic/iconic/catalog";
+import { defineClient } from "@iconic/iconic/catalog";
 
 const icons = useIconic();
 const catalog = defineClient(icons.schema, { base: "/api/iconic" });
@@ -35,8 +35,8 @@ async function choose(id: string) {
     <p>
       One semantic contract of icon aliases, rendered from an inline SVG sprite.
       Pick a set to <code>apply</code> it — every
-      <code>&lt;use href="#alias"&gt;</code> stays the same, only the symbol body
-      behind it swaps.
+      <code>&lt;use href="#alias"&gt;</code> stays the same, only the symbol
+      body behind it swaps.
     </p>
 
     <nav class="switcher">
@@ -60,8 +60,12 @@ async function choose(id: string) {
       </thead>
       <tbody>
         <tr v-for="alias in aliases" :key="alias">
-          <td><code>{{ alias }}</code></td>
-          <td><code>#{{ alias }}</code></td>
+          <td>
+            <code>{{ alias }}</code>
+          </td>
+          <td>
+            <code>#{{ alias }}</code>
+          </td>
           <td class="icon"><Icon :name="alias" /></td>
         </tr>
       </tbody>

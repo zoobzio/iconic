@@ -50,12 +50,12 @@ importers:
 
   examples/nuxt:
     dependencies:
+      '@iconic/iconic':
+        specifier: workspace:*
+        version: link:../../packages/iconic
       '@iconic/nuxt':
         specifier: workspace:*
         version: link:../../integrations/nuxt
-      iconic:
-        specifier: workspace:*
-        version: link:../../packages/iconic
       nuxt:
         specifier: ^4.4.6
         version: 4.4.8(@babel/plugin-syntax-jsx@7.29.7(@babel/core@7.29.7))(@babel/plugin-syntax-typescript@7.29.7(@babel/core@7.29.7))(@parcel/watcher@2.5.6)(@types/node@25.9.5)(@vue/compiler-sfc@3.5.39)(cac@6.7.14)(esbuild@0.28.1)(eslint@10.7.0(jiti@2.7.0))(magicast@0.5.3)(optionator@0.9.4)(rollup-plugin-visualizer@7.0.1(rollup@4.62.2))(rollup@4.62.2)(srvx@0.11.22)(terser@5.49.0)(typescript@6.0.3)(vite@7.3.6(@types/node@25.9.5)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))(yaml@2.9.0)
@@ -94,15 +94,18 @@ importers:
       '@iconic/catalog':
         specifier: workspace:*
         version: link:../../packages/catalog
+      '@iconic/iconic':
+        specifier: workspace:*
+        version: link:../../packages/iconic
       '@types/node':
         specifier: ^25.9.1
         version: 25.9.5
-      iconic:
-        specifier: workspace:*
-        version: link:../../packages/iconic
 
   integrations/nuxt:
     dependencies:
+      '@iconic/iconic':
+        specifier: workspace:*
+        version: link:../../packages/iconic
       '@iconic/iconify':
         specifier: workspace:*
         version: link:../iconify
@@ -112,9 +115,6 @@ importers:
       h3:
         specifier: ^1.15.11
         version: 1.15.11
-      iconic:
-        specifier: workspace:*
-        version: link:../../packages/iconic
       vue:
         specifier: ^3.5.35
         version: 3.5.39(typescript@6.0.3)

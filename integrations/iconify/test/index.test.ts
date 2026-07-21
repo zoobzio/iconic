@@ -3,7 +3,7 @@ import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import type { IconifyIcon, IconifyJSON } from "@iconify/types";
-import { defineIconic } from "iconic";
+import { defineIconic } from "@iconic/iconic";
 import { defineCatalog } from "@iconic/catalog";
 
 import { generate, generateSet } from "../src/generate";
@@ -92,7 +92,7 @@ describe("generate", () => {
     });
     expect(result.filename).toBe("iconic.config.ts");
     expect(result.contents).toContain(
-      `import { defineIconicConfig } from "iconic/config";`,
+      `import { defineIconicConfig } from "@iconic/iconic/config";`,
     );
     expect(result.contents).toContain("contract: {");
     expect(result.contents).toContain(`id: "app"`);

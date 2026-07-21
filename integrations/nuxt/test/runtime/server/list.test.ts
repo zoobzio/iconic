@@ -1,4 +1,4 @@
-import type { Page } from "iconic/catalog";
+import type { Page } from "@iconic/iconic/catalog";
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 

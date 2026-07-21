@@ -35,7 +35,7 @@ collection-root defaults — and emits a **contract**: a plain `iconic.config.ts
 of resolved icon data, no collections retained.
 
 ```ts
-import { defineIconicConfig } from "iconic/config";
+import { defineIconicConfig } from "@iconic/iconic/config";
 
 export default defineIconicConfig({
   contract: {
@@ -50,8 +50,8 @@ The runtime engine seeds a fresh state container from that config and resolves
 an alias to its effective icon — the user override, else the active contract:
 
 ```ts
-import { makeIconic } from "iconic";
-import { useIconicConfig } from "iconic/config";
+import { makeIconic } from "@iconic/iconic";
+import { useIconicConfig } from "@iconic/iconic/config";
 import config from "./iconic.config";
 
 const icons = makeIconic(useIconicConfig(config));
@@ -77,7 +77,7 @@ elsewhere. Both `list` (discovery, filtered/paged, tag-aware) and `get`
 (retrieval, proven against the contract) behave identically:
 
 ```ts
-import { defineCatalog } from "iconic/catalog";
+import { defineCatalog } from "@iconic/iconic/catalog";
 
 const catalog = defineCatalog(icons.schema, provider);
 const set = await catalog.get("sharp");
@@ -100,7 +100,7 @@ patches into the DOM in place after an `apply`; `sheet()` renders the whole
 sprite for build-time or SSR.
 
 ```ts
-import { defineSprite } from "iconic/svg";
+import { defineSprite } from "@iconic/iconic/svg";
 
 const sprite = defineSprite(icons);
 sprite.href("home"); // "#home" — constant
@@ -121,7 +121,7 @@ fallback, and can also fetch a single icon from a URL.
 | -------------------------------- | ----------------------------------------------------------------------------------------- |
 | [`packages`](./packages)         | The library: the public [`iconic`](./packages/iconic) package and the internals behind it |
 | [`integrations`](./integrations) | Build and framework bridges — the `@iconic/iconify` generator and the Nuxt module         |
-| `examples`                       | Consuming apps demonstrating the pipeline (none yet — the bucket is reserved)              |
+| `examples`                       | Consuming apps demonstrating the pipeline (none yet — the bucket is reserved)             |
 
 The internal packages: `@iconic/schema` (validation), `@iconic/core` (runtime
 service), `@iconic/catalog` (set discovery/retrieval), `@iconic/svg` (sprite),

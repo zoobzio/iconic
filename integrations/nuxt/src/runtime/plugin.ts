@@ -1,6 +1,6 @@
 import { defineNuxtPlugin } from "#app";
 import { watchEffect } from "vue";
-import { defineSprite } from "iconic/svg";
+import { defineSprite } from "@iconic/iconic/svg";
 import { makeIconic } from "./client";
 import { CONTAINER } from "../constant";
 

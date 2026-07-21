@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@iconic/nuxt": "workspace:*",
-    "iconic": "workspace:*",
+    "@iconic/iconic": "workspace:*",
     "nuxt": "^4.4.6",
     "vue": "^3.5.35"
   },

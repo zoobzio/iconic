@@ -1,4 +1,4 @@
-import type { Identity } from "iconic";
+import type { Identity } from "@iconic/iconic";
 
 /**
  * An alias map authored as icon *refs* — `home: "lucide:home"`, or

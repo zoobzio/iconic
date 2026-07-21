@@ -49,7 +49,7 @@ await writeFile(set.filename, set.contents); // solid.set.json
 The emitted `iconic.config.ts`:
 
 ```ts
-import { defineIconicConfig } from "iconic/config";
+import { defineIconicConfig } from "@iconic/iconic/config";
 
 export default defineIconicConfig({
   contract: {

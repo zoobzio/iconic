@@ -6,7 +6,7 @@ import type {
   Iconic,
   Overrides,
   Set,
-} from "iconic";
+} from "@iconic/iconic";
 
 /**
  * The active contract, its alias keys derived from the build-time union. Keyed
