@@ -1,15 +1,10 @@
 name: Release
 
-# Trunk-based, no schedule: work merges to main continuously, and changesets
-# keeps an open "Release" PR that accumulates the pending version bump.
-# Publishing is currently PAUSED — the action only opens/updates the Release PR
-# and never publishes (the packages are pre-1.0 and unpublished, and the
-# `@iconic` npm scope is not yet set up). To go live, restore the `publish:`
-# input on the step below and bootstrap the first publish (see step note).
-# workflow_dispatch is the ad-hoc "Run workflow" button.
+# Manual releases only — no auto Release PR. Trigger from the Actions tab
+# ("Run workflow") or `gh workflow run Release` when you want to cut a release.
+# The job applies any pending changesets (version bump + changelog), commits
+# that to the branch it ran on, publishes to npm via OIDC, and pushes the tags.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 # Never cancel a release mid-publish; queue instead.
@@ -18,8 +13,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write # push the release branch, tag, create GitHub releases
-  pull-requests: write # open/update the Release PR
+  contents: write # push the version-bump commit and tags
   id-token: write # OIDC trusted publishing + provenance attestation
 
 jobs:
@@ -27,7 +21,11 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
+      # Full history so @changesets/changelog-github can resolve each changeset
+      # to the commit/PR that introduced it, and so tags push cleanly.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -44,19 +42,42 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      # Publishing paused: with only `version:` set, the action opens/updates the
-      # Release PR from pending changesets and never publishes. To enable
-      # publishing, restore `publish: pnpm ci:release` below. NOTE: the first
-      # publish cannot run under OIDC trusted publishing (it can't create a
-      # brand-new package) — bootstrap each `@iconic/*` package once with an
-      # npm token, then configure a trusted publisher per package.
-      - name: Create or update Release PR
-        uses: changesets/action@v1
-        with:
-          version: pnpm ci:version
-          # publish: pnpm ci:release
-          commit: "chore: release"
-          title: "chore: release"
+      # Apply every pending changeset: bump versions, rewrite changelogs, and
+      # delete the consumed changeset files.
+      # GITHUB_TOKEN lets @changesets/changelog-github resolve each changeset to
+      # the commit/PR that introduced it. The default Actions token suffices.
+      - name: Version
+        run: pnpm ci:version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Commit the bump to the release branch. Skips cleanly when nothing was
+      # pending — in that case Publish still ships any already-versioned commit
+      # whose version isn't yet on npm.
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No pending changesets — nothing to version."
+          else
+            git commit -m "chore: release"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+      # Build and publish anything whose version isn't yet on npm. Tokenless
+      # OIDC — no NPM_TOKEN. Provenance is emitted under trusted publishing.
+      # NOTE: OIDC trusted publishing cannot CREATE a brand-new package, and the
+      # `@iconic/*` packages are not yet on npm. Bootstrap each package once with
+      # a classic npm token (a manual `npm publish`, or a temporary NODE_AUTH_TOKEN
+      # here), then configure a trusted publisher per package — after that this
+      # tokenless step publishes every subsequent release.
+      - name: Publish
+        run: pnpm ci:release
+        env:
           NPM_CONFIG_PROVENANCE: "true"
+
+      # Push the tags changeset publish created for the released versions.
+      - name: Push tags
+        run: git push --tags
