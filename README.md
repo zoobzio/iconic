@@ -125,7 +125,8 @@ fallback, and can also fetch a single icon from a URL.
 
 The internal packages: `@iconic/schema` (validation), `@iconic/core` (runtime
 service), `@iconic/catalog` (set discovery/retrieval), `@iconic/svg` (sprite),
-`@iconic/utils` and `@iconic/common` (helpers).
+and `@iconic/utils` (helpers). Shared type guards and object helpers come from
+the standalone [`objectively`](https://www.npmjs.com/package/objectively) package.
 
 ## Development
 

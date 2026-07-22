@@ -1,4 +1,4 @@
-import { keys } from "@iconic/common";
+import { keys } from "objectively";
 
 import type { Contract, Enum } from "./types";
 

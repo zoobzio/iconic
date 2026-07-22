@@ -2,7 +2,7 @@ import { getIconData, quicklyValidateIconSet } from "@iconify/utils";
 import { loadCollectionFromFS } from "@iconify/utils/lib/loader/fs";
 import type { IconifyIcon, IconifyJSON } from "@iconify/types";
 
-import { isObject } from "@iconic/common";
+import { object } from "objectively";
 
 import type { ParsedRef, Req, SchemeResolver } from "./types";
 import { API_BASE } from "./constant";
@@ -28,7 +28,7 @@ export const request: Req = async (src) => {
  * full shape at assemble time.
  */
 const isIcon = (value: unknown): value is IconifyIcon =>
-  isObject(value) && typeof value.body === "string";
+  object(value) && typeof value.body === "string";
 
 /**
  * Acquires every Iconify collection the refs draw from, one batched request per

@@ -1,4 +1,4 @@
-import { isEqual } from "@iconic/common";
+import { equals } from "objectively";
 
 import type { Contract } from "@iconic/schema";
 
@@ -30,7 +30,7 @@ export const clone = <C extends Contract>(contract: C): C => {
     result.tags = copy(contract.tags);
   }
 
-  if (!isEqual(contract, result)) {
+  if (!equals(contract, result)) {
     throw new TypeError("unable to clone a contract");
   }
 

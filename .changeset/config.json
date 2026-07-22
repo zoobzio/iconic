@@ -7,7 +7,6 @@
   "fixed": [
     [
       "iconic",
-      "@iconic/common",
       "@iconic/core",
       "@iconic/schema",
       "@iconic/utils",

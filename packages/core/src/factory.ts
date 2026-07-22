@@ -1,4 +1,4 @@
-import { isEqual, keys } from "@iconic/common";
+import { equals, keys } from "objectively";
 import { defineSchema } from "@iconic/schema";
 import type {
   Alias,
@@ -133,7 +133,7 @@ export const makeIconic = <C extends Contract>(
     const out: Record<string, IconifyIcon> = {};
     for (const alias of keys(proxy.contract.icons)) {
       const current = effective(alias);
-      if (!isEqual(baseline[alias], current)) {
+      if (!equals(baseline[alias], current)) {
         out[alias] = current;
       }
     }

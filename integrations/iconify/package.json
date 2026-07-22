@@ -21,10 +21,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@iconic/common": "workspace:*",
     "@iconic/schema": "workspace:*",
     "@iconify/types": "^2.0.0",
-    "@iconify/utils": "^3.1.4"
+    "@iconify/utils": "^3.1.4",
+    "objectively": "^0.1.1"
   },
   "devDependencies": {
     "@iconic/catalog": "workspace:*",

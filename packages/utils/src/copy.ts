@@ -1,4 +1,4 @@
-import { isEqual, isRecord } from "@iconic/common";
+import { equals, record } from "objectively";
 
 /**
  * Deep copy of plain data: records and arrays are rebuilt from fresh
@@ -17,18 +17,18 @@ import { isEqual, isRecord } from "@iconic/common";
 export const copy = <T>(value: T): T => {
   if (Array.isArray(value)) {
     const result = value.map((entry) => copy(entry));
-    if (!isEqual(value, result)) {
+    if (!equals(value, result)) {
       throw new TypeError("could not copy array");
     }
     return result;
   }
 
-  if (isRecord(value)) {
+  if (record(value)) {
     const result: Record<string, unknown> = {};
     for (const key of Object.keys(value)) {
       result[key] = copy(value[key]);
     }
-    if (!isEqual(value, result)) {
+    if (!equals(value, result)) {
       throw new TypeError("could not copy record");
     }
     return result;

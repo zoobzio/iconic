@@ -1,6 +1,6 @@
 import { createError, defineEventHandler, getRouterParam } from "h3";
 import { ROUTE } from "@iconic/iconic/catalog";
-import { isRecord } from "@iconic/iconic/common";
+import { record } from "objectively";
 import { useRuntimeConfig, useStorage } from "#imports";
 
 import { ASSETS, SETS } from "@iconic/nuxt/constant";
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const stored = await useStorage(`assets:${ASSETS}`).getItem(SETS);
-  if (!isRecord(stored)) {
+  if (!record(stored)) {
     throw createError({
       statusCode: 500,
       statusMessage: "Catalog payloads unavailable",

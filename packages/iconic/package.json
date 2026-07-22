@@ -9,10 +9,6 @@
       "types": "./.dist/index.d.ts",
       "import": "./.dist/index.mjs"
     },
-    "./common": {
-      "types": "./.dist/common.d.ts",
-      "import": "./.dist/common.mjs"
-    },
     "./config": {
       "types": "./.dist/config.d.ts",
       "import": "./.dist/config.mjs"
@@ -38,7 +34,6 @@
   },
   "dependencies": {
     "@iconic/catalog": "workspace:*",
-    "@iconic/common": "workspace:*",
     "@iconic/core": "workspace:*",
     "@iconic/schema": "workspace:*",
     "@iconic/svg": "workspace:*",

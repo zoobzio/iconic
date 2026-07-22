@@ -2,7 +2,7 @@ import type { Entry, Listing } from "@iconic/iconic/catalog";
 
 import { createError, defineEventHandler, getQuery } from "h3";
 import { isQuery, LIMIT, ROUTE, SORT } from "@iconic/iconic/catalog";
-import { isRecord } from "@iconic/iconic/common";
+import { record } from "objectively";
 import { useRuntimeConfig, useStorage } from "#imports";
 
 import { ASSETS, ENTRIES } from "@iconic/nuxt/constant";
@@ -13,7 +13,7 @@ import { remoteHeaders } from "./remote";
  * written with: a non-empty id and name.
  */
 const isEntry = (value: unknown): value is Entry => {
-  if (!isRecord(value)) {
+  if (!record(value)) {
     return false;
   }
   if (typeof value.id !== "string" || value.id.length === 0) {

@@ -1,6 +1,6 @@
 import type { Entry, Page, Query, Sort } from "./types";
 
-import { isRecord } from "@iconic/common";
+import { record } from "objectively";
 
 /**
  * Whether a value is a whole non-negative count — the shape shared by `limit`,
@@ -27,7 +27,7 @@ const isTags = (value: unknown): value is string[] => {
  * {@link isQuery} — a sort is an instruction.
  */
 const isSort = (value: unknown): value is Sort => {
-  if (!isRecord(value)) {
+  if (!record(value)) {
     return false;
   }
   for (const key of Object.keys(value)) {
@@ -49,7 +49,7 @@ const isSort = (value: unknown): value is Sort => {
  * disguised as filtered ones.
  */
 export const isQuery = (value: unknown): value is Query => {
-  if (!isRecord(value)) {
+  if (!record(value)) {
     return false;
   }
   for (const key of Object.keys(value)) {
@@ -86,7 +86,7 @@ export const isQuery = (value: unknown): value is Query => {
  * discovery.
  */
 const isEntry = (value: unknown): value is Entry => {
-  if (!isRecord(value)) {
+  if (!record(value)) {
     return false;
   }
   if (typeof value.id !== "string" || value.id.length === 0) {
@@ -110,7 +110,7 @@ const isEntry = (value: unknown): value is Entry => {
  * the entries is the producing catalog's responsibility.
  */
 export const isPage = (value: unknown): value is Page => {
-  if (!isRecord(value)) {
+  if (!record(value)) {
     return false;
   }
   if (!Array.isArray(value.entries)) {

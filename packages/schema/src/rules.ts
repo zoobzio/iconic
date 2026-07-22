@@ -1,4 +1,4 @@
-import { isObject } from "@iconic/common";
+import { object } from "objectively";
 
 import type { Contract, Enum, Issue, Rule, Rules } from "./types";
 
@@ -29,7 +29,7 @@ const BOOLEAN = ["hFlip", "vFlip"] as const;
  * the build layer points at exactly what is malformed.
  */
 const iconRule: Rule = (v) => {
-  if (!isObject(v)) {
+  if (!object(v)) {
     return issue("not_icon", "expected an icon definition literal", {
       received: v,
     });
@@ -66,7 +66,7 @@ const iconRule: Rule = (v) => {
  * offending field.
  */
 const identityRule: Rule = (v) => {
-  if (!isObject(v)) {
+  if (!object(v)) {
     return issue("not_object", "expected an identified document", {
       received: v,
     });
@@ -128,7 +128,7 @@ export const defineRules = <C extends Contract>(enums: Enum<C>): Rules => {
       : issue("unknown_alias", `unknown alias "${String(v)}"`, { received: v });
 
   const overridesRule: Rule = (v) => {
-    if (!isObject(v)) {
+    if (!object(v)) {
       return issue("not_object", "expected a map of overrides", {
         received: v,
       });
@@ -152,7 +152,7 @@ export const defineRules = <C extends Contract>(enums: Enum<C>): Rules => {
     if (bad) {
       return bad;
     }
-    if (isObject(v) && v.icons !== undefined) {
+    if (object(v) && v.icons !== undefined) {
       const badIcons = overridesRule(v.icons);
       if (badIcons) {
         return { ...badIcons, path: ["icons", ...(badIcons.path ?? [])] };
@@ -166,10 +166,10 @@ export const defineRules = <C extends Contract>(enums: Enum<C>): Rules => {
     if (bad) {
       return bad;
     }
-    if (!isObject(v)) {
+    if (!object(v)) {
       return issue("not_object", "expected a contract", { received: v });
     }
-    if (!isObject(v.icons)) {
+    if (!object(v.icons)) {
       return issue("missing_key", "contract is missing an icons map", {
         path: ["icons"],
       });
